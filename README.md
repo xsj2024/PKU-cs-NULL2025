@@ -6,3 +6,4 @@
 
 commit and pull 方法确认：
 1.谢尚杰
+2.刘子豪
