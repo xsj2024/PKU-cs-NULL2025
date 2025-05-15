@@ -2,9 +2,16 @@
 
 队内成员：谢尚杰，王玺傲，刘子豪。
 
-主要内容：无（暂时）
+主要内容：基于PySpice,PyQt5和ngspice的电路可视化程序
 
-commit and pull 方法确认：
-1.谢尚杰
-2.刘子豪
-3.王玺傲
+代码结构：
+
+main.py：启用主窗口
+
+stimulation.py：定义主窗口CircuitSimulator(QMainWindow)
+
+wires.py：基于QGraphicsPathItem，初步实现在引脚PinItem之间连线的类WireItem的定义
+
+components.py：实现元件类ComponentItem(QGraphicsRectItem)，引脚类PinItem(QGraphicsEllipseItem)，以及可以基于鼠标互动实现引脚连接的CircuitScene(QGraphicsScene)类
+
+spice_generator.py：定义两个函数：对给定的CircuitScene对象，给出符合Spice语法的Spice网表的函数generate_spice_netlist(scene)；以及根据CircuitScene对象检查电路性质的函数validate_connections(scene)。
