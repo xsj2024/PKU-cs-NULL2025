@@ -1,15 +1,14 @@
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsRectItem, QGraphicsScene
 from PyQt5.QtCore import QRectF, Qt
 from PyQt5.QtGui import QPainterPath, QPen, QColor
-from PyQt5.QtWidgets import QGraphicsEllipseItem, QGraphicsView, QMainWindow, QAction, QToolBar
-from PyQt5.QtGui import QPainter, QBrush, QTransform
-from PyQt5.QtCore import QPointF
+from PyQt5.QtWidgets import QGraphicsEllipseItem, QMainWindow, QAction, QToolBar
+from PyQt5.QtGui import QBrush, QTransform
 from wires import WireItem
 from spice_generator import generate_spice_netlist
-from PyQt5.QtWidgets import QGraphicsLineItem, QGraphicsItemGroup
+from PyQt5.QtWidgets import QGraphicsLineItem
 
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsEllipseItem
-from PyQt5.QtCore import QPointF, Qt
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QBrush, QColor
 
 class PinItem(QGraphicsEllipseItem):
