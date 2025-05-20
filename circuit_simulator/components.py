@@ -1,14 +1,10 @@
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsRectItem, QGraphicsScene
 from PyQt5.QtCore import QRectF, Qt
-from PyQt5.QtGui import QPainterPath, QPen, QColor
+from PyQt5.QtGui import QPainterPath, QPen, QColor, QBrush
 from PyQt5.QtWidgets import QGraphicsEllipseItem, QMainWindow, QAction, QToolBar
 from PyQt5.QtGui import QBrush, QTransform
 from spice_generator import generate_spice_netlist
-from PyQt5.QtWidgets import QGraphicsLineItem
-
-from PyQt5.QtWidgets import QGraphicsItem, QGraphicsEllipseItem
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QBrush, QColor
+from PyQt5.QtWidgets import QGraphicsLineItem, QGraphicsPathItem
 
 class PinItem(QGraphicsEllipseItem):
     def __init__(self, parent_component, pin_name, pos_x, pos_y):
