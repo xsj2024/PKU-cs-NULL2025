@@ -3,7 +3,6 @@ from PyQt5.QtCore import QRectF, Qt
 from PyQt5.QtGui import QPainterPath, QPen, QColor
 from PyQt5.QtWidgets import QGraphicsEllipseItem, QMainWindow, QAction, QToolBar
 from PyQt5.QtGui import QBrush, QTransform
-from wires import WireItem
 from spice_generator import generate_spice_netlist
 from PyQt5.QtWidgets import QGraphicsLineItem
 
@@ -43,6 +42,9 @@ class ComponentItem(QGraphicsRectItem):
             self.pins['minus'] = PinItem(self, "minus", self.rect().width()/2, self.rect().height())
         elif spice_type == 'GND':
             self.pins['gnd'] = PinItem(self, "gnd", self.rect().width()/2, self.rect().height())
+        elif spice_type == 'D':
+            self.pins['anode'] = PinItem(self, "anode", 0, self.rect().height()/2)
+            self.pins['cathode'] = PinItem(self, "cathode", self.rect().width(), self.rect().height()/2)
 
 
     def paint(self, painter, option, widget):

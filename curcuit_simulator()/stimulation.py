@@ -49,7 +49,7 @@ class CircuitSimulator(QMainWindow):
         
         # 使用选项卡分类元件
         tab_widget = QTabWidget()
-        
+
         # 基础元件选项卡
         basic_tab = QWidget()
         basic_layout = QVBoxLayout()
@@ -59,7 +59,7 @@ class CircuitSimulator(QMainWindow):
         # 半导体选项卡（未来扩展）
         semi_tab = QWidget()
         semi_layout = QVBoxLayout()
-        self._add_component_buttons(semi_layout, ["二极管", "晶体管"], enabled=False)
+        self._add_component_buttons(semi_layout, ["二极管", "晶体管"])
         semi_tab.setLayout(semi_layout)
         
         tab_widget.addTab(basic_tab, "基础元件")
@@ -126,7 +126,9 @@ class CircuitSimulator(QMainWindow):
             item = ComponentItem(f"V{len(self.scene.components) + 1}", "V")
         elif component_type == "GND" or component_type == "接地":
             item = ComponentItem(f"GND{len(self.scene.components) + 1}", "GND")
-        
+        elif component_type == "二极管" or component_type == "D":
+            item = ComponentItem(f"D{len(self.scene.components) + 1}", "D")
+
         self.scene.addItem(item)
         self.scene.components.append(item)
         self.statusBar().showMessage(f"已添加 {item.name}")

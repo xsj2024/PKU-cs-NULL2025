@@ -90,5 +90,16 @@ def generate_spice_netlist(scene):
                          node_map[comp.pins['plus']], 
                          node_map[comp.pins['minus']], 
                          5)
+        elif comp.spice_type == 'D':
+            # 若二极管有参数值
+            if hasattr(comp, "value"):
+                circuit.model(comp.name, 'D', IS=comp.value)
+            else:
+                # 默认值为1e-14
+                circuit.model(comp.name, 'D', IS=1e-14)
+            circuit.D(comp.name,
+                     node_map[comp.pins['anode']], 
+                     node_map[comp.pins['cathode']], 
+                     model=comp.name)
     #validate_connections(scene)  # 验证连接
     return circuit
