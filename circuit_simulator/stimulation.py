@@ -1,8 +1,8 @@
 from PyQt5.QtWidgets import QGraphicsView
 from PyQt5.QtWidgets import QMainWindow, QToolBar, QAction
-from components import CircuitScene
 from spice_generator import generate_spice_netlist
 from components import ComponentItem, PinItem, WireItem, CircuitScene
+from ComponentItem import GraphicComponentItem
 from PyQt5.QtWidgets import (
     QMainWindow, QDockWidget, QListWidget, 
     QToolBar, QTabWidget, QWidget, QVBoxLayout, QPushButton
@@ -121,13 +121,13 @@ class CircuitSimulator(QMainWindow):
     def _add_component(self, component_type):
         """向场景中添加元件"""
         if component_type == "R" or component_type == "电阻":
-            item = ComponentItem(f"R{len(self.scene.components) + 1}", "R")
+            item = GraphicComponentItem(f"R{len(self.scene.components) + 1}", "R")
         elif component_type == "V" or component_type == "电压源":
-            item = ComponentItem(f"V{len(self.scene.components) + 1}", "V")
+            item = GraphicComponentItem(f"V{len(self.scene.components) + 1}", "V")
         elif component_type == "GND" or component_type == "接地":
-            item = ComponentItem(f"GND{len(self.scene.components) + 1}", "GND")
+            item = GraphicComponentItem(f"GND{len(self.scene.components) + 1}", "GND")
         elif component_type == "二极管" or component_type == "D":
-            item = ComponentItem(f"D{len(self.scene.components) + 1}", "D")
+            item = GraphicComponentItem(f"D{len(self.scene.components) + 1}", "D")
 
         self.scene.addItem(item)
         self.scene.components.append(item)
