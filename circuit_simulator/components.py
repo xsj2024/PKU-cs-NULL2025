@@ -17,6 +17,7 @@ class PinItem(QGraphicsEllipseItem):
         self.connected_wires = []  # 存储连接的线
         self.node_name = None  # 节点名称
         self.voltage = None  # 电压值
+        self.ac_voltage = None  # AC电压函数
         self.setAcceptHoverEvents(True)  # 接受悬停事件
         self.voltage_label = None  # 电压标签
 
@@ -29,6 +30,14 @@ class PinItem(QGraphicsEllipseItem):
     def set_voltage(self, voltage):
         """设置引脚电压值"""
         self.voltage = float(voltage) if voltage is not None else None
+    
+    def set_ac_voltage(self, ac_voltage):
+        """设置交流电压函数"""
+        if ac_voltage is not None:
+            self.ac_voltage = ac_voltage
+        else:
+            self.ac_voltage = None
+
         
     def hoverEnterEvent(self, event):
         """鼠标悬停时显示电压"""

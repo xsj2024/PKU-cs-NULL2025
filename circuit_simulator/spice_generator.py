@@ -15,6 +15,7 @@ def validate_connections(scene):
             
 
 def generate_spice_netlist(scene):
+    has_ac_source = any(comp.spice_type == "V_AC" for comp in scene.components)
     circuit = Circuit('Custom Circuit')
     node_counter = 0
     node_map = {}
@@ -22,7 +23,6 @@ def generate_spice_netlist(scene):
     # 第一遍：为所有引脚分配临时唯一ID（用于连通性分析）
     pin_groups = []
     all_pins = set()
-    gnd_pins = set()
     
     # 收集所有连线关系
     for wire in scene.wires:
@@ -100,6 +100,35 @@ def generate_spice_netlist(scene):
                      node_map[comp.pins['anode']], 
                      node_map[comp.pins['cathode']], 
                      model=comp.name)
+        elif comp.spice_type == 'C':
+            if hasattr(comp, 'value'):
+                circuit.C(comp.name, 
+                         node_map[comp.pins['left']], 
+                         node_map[comp.pins['right']], 
+                         comp.value)
+            else:
+                # 默认值为1uF
+                circuit.C(comp.name, 
+                         node_map[comp.pins['left']], 
+                         node_map[comp.pins['right']], 
+                         1e-6)
+        elif comp.spice_type == 'L':
+            if hasattr(comp, 'value'):
+                circuit.L(comp.name, 
+                         node_map[comp.pins['left']], 
+                         node_map[comp.pins['right']], 
+                         comp.value)
+            else:
+                # 默认值为1mH
+                circuit.L(comp.name, 
+                         node_map[comp.pins['left']], 
+                         node_map[comp.pins['right']], 
+                         1e-3)
+        elif comp.spice_type == 'V_AC':
+            circuit.V(comp.name,
+                     node_map[comp.pins['plus']], 
+                     node_map[comp.pins['minus']], 
+                     comp.spice_description())  # 假设元件有spice_description属性
     #validate_connections(scene)  # 验证连接
     # 在pin中维护节点对应的spice节点名称
     for pin in all_pins:
@@ -109,4 +138,4 @@ def generate_spice_netlist(scene):
             pin.node_name = node_name
         else:
             print(f"Warning: Pin {pin} has no corresponding node name.")
-    return circuit
+    return circuit, has_ac_source

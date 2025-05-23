@@ -28,6 +28,9 @@ class GraphicComponentItem(QGraphicsPixmapItem):
             "V": "icons/V.png",
             "D": "icons/D.png",
             "GND": "icons/GND.png",
+            "L": "icons/L.png",
+            "V_AC": "icons/AC.png",
+            "OSC": "icons/oscilloscope.png",
         }.get(self.spice_type, "icons/default.png")
 
     def _load_icon(self, path):
@@ -35,7 +38,7 @@ class GraphicComponentItem(QGraphicsPixmapItem):
         pixmap = QPixmap(path)
         if pixmap.isNull():
             print(f"Warning: Icon not found at {path}. Using default gray icon.")
-            pixmap = QPixmap(50, 30)
+            pixmap = QPixmap(100, 60)
             pixmap.fill(Qt.gray)
         self.setPixmap(pixmap.scaled(50, 30, Qt.KeepAspectRatio))
 
@@ -57,6 +60,19 @@ class GraphicComponentItem(QGraphicsPixmapItem):
         elif self.spice_type == "D":
             self.pins["anode"] = PinItem(self, "anode", rect.left(), rect.center().y())
             self.pins["cathode"] = PinItem(self, "cathode", rect.right(), rect.center().y())
+        elif self.spice_type == "C":
+            self.pins["left"] = PinItem(self, "left", rect.left(), rect.center().y())
+            self.pins["right"] = PinItem(self, "right", rect.right(), rect.center().y())
+        elif self.spice_type == "L":
+            self.pins["left"] = PinItem(self, "left", rect.left(), rect.center().y())
+            self.pins["right"] = PinItem(self, "right", rect.right(), rect.center().y())
+        elif self.spice_type == "V_AC":
+            self.pins["plus"] = PinItem(self, "ac", rect.left(), rect.center().y())
+            self.pins["minus"] = PinItem(self, "norm", rect.right(), rect.center().y())
+        elif self.spice_type == "OSC":
+            #引脚在左下方和右下方，3/4处
+            self.pins["ch1"] = PinItem(self, "ch1", rect.left() * 1 / 2, rect.bottom() * 3 / 4)
+            self.pins["ch2"] = PinItem(self, "ch2", rect.right() * 1 / 2, rect.bottom() * 3 / 4)
 
     def paint(self, painter, option, widget=None):
         """自定义绘制（图标+引脚）"""
