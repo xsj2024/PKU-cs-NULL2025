@@ -1,6 +1,3 @@
-# 读取./output.csv文件并用seaborn画图
-import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
 import numpy as np
 import os

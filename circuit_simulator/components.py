@@ -4,7 +4,7 @@ from PyQt5.QtGui import QPainterPath, QPen, QColor, QBrush
 from PyQt5.QtWidgets import QGraphicsEllipseItem, QMainWindow, QAction, QToolBar
 from PyQt5.QtGui import QBrush, QTransform
 from spice_generator import generate_spice_netlist
-from PyQt5.QtWidgets import QGraphicsLineItem, QGraphicsPathItem
+from PyQt5.QtWidgets import QGraphicsLineItem, QGraphicsPathItem, QGraphicsSimpleTextItem
 
 class PinItem(QGraphicsEllipseItem):
     def __init__(self, parent_component, pin_name, pos_x, pos_y):
@@ -15,12 +15,35 @@ class PinItem(QGraphicsEllipseItem):
         self.pin_name = pin_name  # 引脚名称（如 "left", "right"）
         self.parent_component = parent_component  # 所属元件
         self.connected_wires = []  # 存储连接的线
+        self.node_name = None  # 节点名称
+        self.voltage = None  # 电压值
+        self.setAcceptHoverEvents(True)  # 接受悬停事件
+        self.voltage_label = None  # 电压标签
 
     def mousePressEvent(self, event):
         # 点击引脚时触发连线逻辑
         if event.button() == Qt.LeftButton:
             self.scene().start_wire_from_pin(self)
         super().mousePressEvent(event)
+    
+    def set_voltage(self, voltage):
+        """设置引脚电压值"""
+        self.voltage = float(voltage) if voltage is not None else None
+        
+    def hoverEnterEvent(self, event):
+        """鼠标悬停时显示电压"""
+        if self.voltage is not None and self.voltage_label is None:
+            # 创建电压标签
+            self.voltage_label = QGraphicsSimpleTextItem(f"{self.voltage:.2f}V", self)
+            self.voltage_label.setPos(self.x() + 10, self.y() - 20)
+        super().hoverEnterEvent(event)
+        
+    def hoverLeaveEvent(self, event):
+        """鼠标移出时移除电压标签"""
+        if (self.voltage is not None) and self.voltage_label is not None:
+            self.scene().removeItem(self.voltage_label)
+            self.voltage_label = None
+        super().hoverLeaveEvent(event)
 
 class ComponentItem(QGraphicsRectItem):
     def __init__(self, name, spice_type):

@@ -135,32 +135,47 @@ class CircuitSimulator(QMainWindow):
 
     def _run_spice_simulation(self):
         """生成SPICE网表并调用PySpice"""
-        try:
-            from PySpice.Spice.Netlist import Circuit
+        #try:
+        from PySpice.Spice.Netlist import Circuit
             
             # 直接调用generate_spice_netlist函数
-            circuit = generate_spice_netlist(self.scene)
+        circuit = generate_spice_netlist(self.scene)
 
             # 打印网表（实际可调用PySpice仿真）
-            print("生成的SPICE网表:")
-            print(circuit)
+        print("生成的SPICE网表:")
+        print(circuit)
             
             # 模拟操作（示例：直流工作点分析）
-            simulator = circuit.simulator()
-            analysis = simulator.operating_point()
-            for node in analysis.nodes.values():
-                print(f"Node {str(node)}: {float(node):.3f} V")
-            
-            QMessageBox.information(self, "SPICE仿真", "网表已生成并打印到控制台！")
+        simulator = circuit.simulator()
+        analysis = simulator.operating_point()
+        print("仿真成功！结果如下：")
+        for node in analysis.nodes.values():
+            print(f"Node {str(node)}: {float(node):.3f} V")
+            # 更新所有引脚的电压值
+        dict = analysis.nodes
+        for comp in self.scene.components:
+            for pin_name, pin_item in comp.pins.items():
+                    # 先将引脚电压设为None
+                pin_item.set_voltage(None)
+                # 获取引脚对应的SPICE节点名
+                node_name = pin_item.node_name
+                if node_name in dict:
+                    # 设置引脚电压
+                    pin_item.set_voltage(dict[node_name])
+                elif node_name == '0':
+                    # 如果是接地引脚，设置电压为0
+                    pin_item.set_voltage(0.0)
+
+                    
         
-        except ImportError:
-            QMessageBox.critical(self, "错误", "未安装PySpice！请运行: pip install PySpice")
-        except Exception as e:
-            QMessageBox.critical(self, "错误", f"仿真失败: {str(e)}")
-            print("仿真失败:", str(e))
-            # 显示原始SPICE输出以调试
-            if hasattr(simulator, 'stdout'):
-                print("SPICE输出:", simulator.stdout)
+        #except ImportError:
+        #    QMessageBox.critical(self, "错误", "未安装PySpice！请运行: conda install -c conda-forge PySpice==1.5")
+        #except Exception as e:
+        #    QMessageBox.critical(self, "错误", f"仿真失败: {str(e)}")
+        #    print("仿真失败:", str(e))
+        #    # 显示原始SPICE输出以调试
+        #    if hasattr(simulator, 'stdout'):
+        #        print("SPICE输出:", simulator.stdout)
 
     def _clear_scene(self):
         """清空场景"""

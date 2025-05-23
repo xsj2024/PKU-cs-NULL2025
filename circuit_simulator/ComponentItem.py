@@ -66,7 +66,3 @@ class GraphicComponentItem(QGraphicsPixmapItem):
         if self.isSelected():
             painter.setPen(QPen(Qt.blue, 2, Qt.DashLine))
             painter.drawRect(self.boundingRect())
-        
-        # 绘制引脚（调试时可显示）
-        for pin in self.pins.values():
-            pin.paint(painter, option, widget)

@@ -63,7 +63,6 @@ def generate_spice_netlist(scene):
                         for p in group:
                             node_map[p] = '0'
 
-
     # 添加元件到SPICE电路
     for comp in scene.components:
         if comp.spice_type == 'R':
@@ -102,4 +101,12 @@ def generate_spice_netlist(scene):
                      node_map[comp.pins['cathode']], 
                      model=comp.name)
     #validate_connections(scene)  # 验证连接
+    # 在pin中维护节点对应的spice节点名称
+    for pin in all_pins:
+        if pin in node_map:
+            node_name = node_map[pin]
+            # 例如将节点名称存储在元件中
+            pin.node_name = node_name
+        else:
+            print(f"Warning: Pin {pin} has no corresponding node name.")
     return circuit
