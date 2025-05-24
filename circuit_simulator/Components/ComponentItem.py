@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QGraphicsView, QGraphicsItem
-from components import PinItem
+from Components.components import PinItem
 from PyQt5.QtCore import Qt, QRectF
 from PyQt5.QtGui import QPen, QPixmap
 
@@ -10,6 +10,12 @@ class GraphicComponentItem(QGraphicsPixmapItem):
         self.name = name
         self.spice_type = spice_type
         self.pins = {}
+        
+        # 特定的模型参数在每个元件的子类中定义
+        self.params = {
+            "name": name,
+            "spice_type": spice_type
+        }
         
         # 加载图标
         self._load_icon(icon_path or self._default_icon_path())
@@ -40,7 +46,7 @@ class GraphicComponentItem(QGraphicsPixmapItem):
             print(f"Warning: Icon not found at {path}. Using default gray icon.")
             pixmap = QPixmap(100, 60)
             pixmap.fill(Qt.gray)
-        self.setPixmap(pixmap.scaled(50, 30, Qt.KeepAspectRatio))
+        self.setPixmap(pixmap.scaled(75, 50, Qt.KeepAspectRatio))
 
     def _setup_pins(self):
         """根据元件类型设置引脚位置"""
@@ -82,3 +88,15 @@ class GraphicComponentItem(QGraphicsPixmapItem):
         if self.isSelected():
             painter.setPen(QPen(Qt.blue, 2, Qt.DashLine))
             painter.drawRect(self.boundingRect())
+
+    def get_editable_parameters(self):
+        """返回需要编辑的参数列表"""
+        pass
+    
+    def set_update_parameters(self, params):
+        """更新参数"""
+        for key, value in params.items():
+            if hasattr(self, key):
+                setattr(self, key, value)
+            else:
+                print(f"Warning: {key} is not a valid parameter for {self.spice_type}.")

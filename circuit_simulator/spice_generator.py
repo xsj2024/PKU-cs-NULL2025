@@ -66,11 +66,11 @@ def generate_spice_netlist(scene):
     # 添加元件到SPICE电路
     for comp in scene.components:
         if comp.spice_type == 'R':
-            if hasattr(comp, 'value'):
+            if "resistance" in comp.params and comp.params["resistance"] is not None:
                 circuit.R(comp.name, 
                          node_map[comp.pins['left']], 
                          node_map[comp.pins['right']], 
-                         comp.value)  # 假设元件有value属性
+                         comp.params["resistance"])
             else:
                 # 默认值为1kΩ
                 circuit.R(comp.name, 
@@ -78,11 +78,11 @@ def generate_spice_netlist(scene):
                          node_map[comp.pins['right']], 
                          1e3)
         elif comp.spice_type == 'V':
-            if hasattr(comp, 'value'):
+            if "voltage" in comp.params and comp.params["voltage"] is not None:
                 circuit.V(comp.name, 
                          node_map[comp.pins['plus']], 
                          node_map[comp.pins['minus']], 
-                         comp.value)
+                         comp.params["voltage"])
             else:
                 # 默认值为5V
                 circuit.V(comp.name, 
@@ -91,7 +91,7 @@ def generate_spice_netlist(scene):
                          5)
         elif comp.spice_type == 'D':
             # 若二极管有参数值
-            if hasattr(comp, "value"):
+            if "Is" in comp.params and comp.params["Is"] is not None:
                 circuit.model(comp.name, 'D', IS=comp.value)
             else:
                 # 默认值为1e-14
@@ -101,11 +101,11 @@ def generate_spice_netlist(scene):
                      node_map[comp.pins['cathode']], 
                      model=comp.name)
         elif comp.spice_type == 'C':
-            if hasattr(comp, 'value'):
+            if "capacitance" in comp.params and comp.params["capacitance"] is not None:
                 circuit.C(comp.name, 
                          node_map[comp.pins['left']], 
                          node_map[comp.pins['right']], 
-                         comp.value)
+                         comp.params["capacitance"])
             else:
                 # 默认值为1uF
                 circuit.C(comp.name, 
@@ -113,11 +113,11 @@ def generate_spice_netlist(scene):
                          node_map[comp.pins['right']], 
                          1e-6)
         elif comp.spice_type == 'L':
-            if hasattr(comp, 'value'):
+            if "inductance" in comp.params and comp.params["inductance"] is not None:
                 circuit.L(comp.name, 
                          node_map[comp.pins['left']], 
                          node_map[comp.pins['right']], 
-                         comp.value)
+                         comp.params["inductance"])
             else:
                 # 默认值为1mH
                 circuit.L(comp.name, 

@@ -1,8 +1,6 @@
 from PyQt5.QtWidgets import QGraphicsView
 from PyQt5.QtWidgets import QMainWindow, QToolBar, QAction
 from spice_generator import generate_spice_netlist
-from components import ComponentItem, PinItem, WireItem, CircuitScene
-from ComponentItem import GraphicComponentItem
 from PyQt5.QtWidgets import (
     QMainWindow, QDockWidget, QListWidget, 
     QToolBar, QTabWidget, QWidget, QVBoxLayout, QPushButton
@@ -13,14 +11,17 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPainter, QBrush, QTransform,QKeySequence
 from PyQt5.QtWidgets import QShortcut
 from shortcuts_manager import shortcutManager,shortcutSettingDialog
-from AC_source import ACSourceItem, OscilloscopeItem
-
+from Components.AC_source import ACSourceItem, OscilloscopeItem
+from parameter_editor import ParameterEditorDock
+from Components.components import ComponentItem, PinItem, WireItem, CircuitScene
+from Components.ComponentItem import GraphicComponentItem
+from Components.basic import ResistorItem, CapacitorItem, InductorItem, VoltageSourceItem, GroundItem, DiodeItem
 
 class CircuitSimulator(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("PyQt + PySpice 电路模拟器")
-        self.setGeometry(100, 100, 1200, 800)
+        self.setGeometry(100, 100, 1400, 800)
         
         # 创建左侧元件停靠窗口
         self._create_component_dock()
@@ -49,12 +50,26 @@ class CircuitSimulator(QMainWindow):
         self.shortcut_manager = shortcutManager(self)
         self._setup_shortcuts()
 
+        # 参数编辑器初始化
+        self.param_editor = ParameterEditorDock()
+        self.addDockWidget(Qt.RightDockWidgetArea, self.param_editor)
+        
+        # 连接场景选择变化信号
+        self.scene.selectionChanged.connect(self._on_selection_changed)
+
+    def _on_selection_changed(self):
+        items = self.scene.selectedItems()
+        if len(items) == 1 and isinstance(items[0], GraphicComponentItem):
+            self.param_editor.edit_component(items[0])
+        else:
+            self.param_editor.clear()
+
     def _create_component_dock(self):
         """创建左侧元件列表停靠栏"""
         dock = QDockWidget("元件库", self)
         dock.setAllowedAreas(Qt.LeftDockWidgetArea)
         # 设置停靠窗口的大小
-        dock.setMinimumWidth(400)
+        dock.setMinimumWidth(350)
         
         # 使用选项卡分类元件
         tab_widget = QTabWidget()
@@ -145,19 +160,19 @@ class CircuitSimulator(QMainWindow):
     def _add_component(self, component_type):
         """向场景中添加元件"""
         if component_type == "R" or component_type == "电阻":
-            item = GraphicComponentItem(f"R{len(self.scene.components) + 1}", "R")
+            item = ResistorItem(f"R{len(self.scene.components) + 1}")
         elif component_type == "V" or component_type == "电压源":
-            item = GraphicComponentItem(f"V{len(self.scene.components) + 1}", "V")
+            item = VoltageSourceItem(f"V{len(self.scene.components) + 1}")
         elif component_type == "GND" or component_type == "接地":
-            item = GraphicComponentItem(f"GND{len(self.scene.components) + 1}", "GND")
+            item = GroundItem(f"GND{len(self.scene.components) + 1}")
         elif component_type == "二极管" or component_type == "D":
-            item = GraphicComponentItem(f"D{len(self.scene.components) + 1}", "D")
+            item = DiodeItem(f"D{len(self.scene.components) + 1}")
         elif component_type == "电容" or component_type == "C":
-            item = GraphicComponentItem(f"C{len(self.scene.components) + 1}", "C")
+            item = CapacitorItem(f"C{len(self.scene.components) + 1}")
         elif component_type == "交流源" or component_type == "V_AC":
             item = ACSourceItem(f"AC{len(self.scene.components) + 1}")
         elif component_type == "电感" or component_type == "L":
-            item = GraphicComponentItem(f"L{len(self.scene.components) + 1}", "L")
+            item = InductorItem(f"L{len(self.scene.components) + 1}")
         elif component_type == "OSC" or component_type == "示波器":
             item = OscilloscopeItem(f"OSC{len(self.scene.components) + 1}")
 

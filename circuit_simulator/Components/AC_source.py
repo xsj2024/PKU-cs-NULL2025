@@ -1,21 +1,15 @@
 from PyQt5.QtWidgets import QDoubleSpinBox
-from ComponentItem import GraphicComponentItem
-from components import PinItem
+from Components.ComponentItem import GraphicComponentItem
+from Components.components import PinItem
 
 class ACSourceItem(GraphicComponentItem):
     def __init__(self, name):
         super().__init__(name, "V_AC")
-        self.params = {
+        self.params.update({
             "amplitude": 5.0,  # 幅值 (V)
             "frequency": 50,   # 频率 (Hz)
             "phase": 0         # 相位 (度)
-        }
-        
-        # 专用参数编辑框
-        self.param_editor = QDoubleSpinBox()
-        self.param_editor.setRange(0.1, 1000)
-        self.param_editor.setValue(50)
-        self.param_editor.valueChanged.connect(self._update_freq)
+        })
 
     def _update_freq(self, value):
         self.params["frequency"] = value
@@ -28,6 +22,11 @@ class ACSourceItem(GraphicComponentItem):
 class OscilloscopeItem(GraphicComponentItem):
     def __init__(self, name):
         super().__init__(name, "OSC")
-        self.waveforms = { "CH1": None, "CH2": None }
         self.setAcceptHoverEvents(True)
+
+        self.params.update({
+            "time_range": 1.0,  # 时间范围 (s)
+            "channels":{"CH1": 0, "CH2": 0},  # 通道设置
+            "mode": "DC"  # 示波器模式
+        })
     
