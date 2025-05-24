@@ -1,0 +1,10 @@
+{
+    "new_file": "Ctrl+N",
+    "save_file": "Ctrl+S",
+    "open_file": "Ctrl+O",
+    "add_resistor": "Ctrl+Shift+R",
+    "add_voltage": "Ctrl+Shift+V",
+    "add_gnd": "Ctrl+Shift+G",
+    "run_spice_simulation": "F6",
+    "clear_scene": "Ctrl+E"
+}

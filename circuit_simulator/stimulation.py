@@ -10,8 +10,9 @@ from PyQt5.QtWidgets import (
 import sys
 from PyQt5.QtWidgets import QMainWindow, QGraphicsView, QToolBar, QAction, QVBoxLayout, QWidget, QMessageBox
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor, QPainter, QBrush, QTransform
-
+from PyQt5.QtGui import QColor, QPainter, QBrush, QTransform,QKeySequence
+from PyQt5.QtWidgets import QShortcut
+from shortcuts_manager import shortcutManager,shortcutSettingDialog
 
 class CircuitSimulator(QMainWindow):
     def __init__(self):
@@ -41,6 +42,10 @@ class CircuitSimulator(QMainWindow):
         
         # 状态栏显示操作提示
         self.statusBar().showMessage("拖放元件并连线，点击仿真运行SPICE")
+
+        # 快捷键初始化
+        self.shortcut_manager = shortcutManager(self)
+        self._setup_shortcuts()
 
     def _create_component_dock(self):
         """创建左侧元件列表停靠栏"""
@@ -118,6 +123,14 @@ class CircuitSimulator(QMainWindow):
         action_clear.triggered.connect(self._clear_scene)
         toolbar.addAction(action_clear)
 
+        action_shortcuts = QAction("快捷键设置", self)
+        action_shortcuts.setStatusTip("自定义快捷键")
+        action_shortcuts.triggered.connect(self.show_shortcut_settings)
+        toolbar.addAction(action_shortcuts)
+
+    def show_shortcut_settings(self):
+        self.shortcut_manager.show_settings_dialog()
+
     def _add_component(self, component_type):
         """向场景中添加元件"""
         if component_type == "R" or component_type == "电阻":
@@ -168,3 +181,26 @@ class CircuitSimulator(QMainWindow):
         self.scene.components = []
         self.scene.wires = []
         self.statusBar().showMessage("场景已清除")
+    
+    #文件新建存储打开功能待实现
+    def new_file(self):
+        print("成功新建文档")
+
+    def save_file(self):
+        print("成功保存文档")
+
+    def open_file(self):
+        print("成功打开文档")
+
+    def _setup_shortcuts(self):
+        shortcut_callbacks = {
+            "new_file": self.new_file,
+            "save_file": self.save_file,
+            "open_file": self.open_file,
+            "add_resistor": lambda: self._add_component("R"),
+            "add_voltage": lambda: self._add_component("V"),
+            "add_gnd": lambda: self._add_component("GND"),
+            "run_spice_simulation": self._run_spice_simulation,
+            "clear_scene": self._clear_scene
+        }
+        self.shortcut_manager.register_all_shortcuts(shortcut_callbacks)
