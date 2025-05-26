@@ -6,11 +6,13 @@ from PyQt5.QtWidgets import (
     QToolBar, QTabWidget, QWidget, QVBoxLayout, QPushButton
 )
 import sys
+import os
 from PyQt5.QtWidgets import QMainWindow, QGraphicsView, QToolBar, QAction, QVBoxLayout, QWidget, QMessageBox
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPainter, QBrush, QTransform,QKeySequence, QPainterPath
 from PyQt5.QtWidgets import QShortcut
 from shortcuts_manager import shortcutManager,shortcutSettingDialog
+from files_manager import FilesManager
 from Components.AC_source import ACSourceItem, OscilloscopeItem
 from parameter_editor import ParameterEditorDock
 from Components.components import ComponentItem, PinItem, WireItem, CircuitScene
@@ -50,12 +52,73 @@ class CircuitSimulator(QMainWindow):
         self.shortcut_manager = shortcutManager(self)
         self._setup_shortcuts()
 
+        # 文件管理初始化
+        self.current_file_path = None
+        self.is_modified = False
+        self.files_manager = FilesManager(self)
+
         # 参数编辑器初始化
         self.param_editor = ParameterEditorDock(self)
         self.addDockWidget(Qt.RightDockWidgetArea, self.param_editor)
         
         # 连接场景选择变化信号
         self.scene.selectionChanged.connect(self._on_selection_changed)
+
+        # 连接场景修改信号 关于文件存储
+        self.scene.changed.connect(self._on_scene_changed)
+
+    def _on_scene_changed(self):
+        """场景发生变化时标记为已修改"""
+        self._set_modified(True)
+
+    def get_component_classes_map(self):
+        '''
+        该函数为FilesManager提供所有元件种类
+        若后续还有新的元件需要在下表中添加
+        '''
+        return {
+            "R": ResistorItem,
+            "V": VoltageSourceItem,
+            "GND": GroundItem,
+            "D": DiodeItem,
+            "C": CapacitorItem,
+            "L": InductorItem,
+            "V_AC": ACSourceItem,
+            "OSC": OscilloscopeItem,
+            "WireItem": WireItem,
+            "GraphicComponentItem": GraphicComponentItem
+        }
+
+    def _set_modified(self, modified):
+        if self.is_modified == modified and self.windowTitle().startswith("*") == modified :
+             return
+        self.is_modified = modified
+        self._update_window_title()
+
+    def _update_window_title(self):
+        title = "PyQt + PySpice 电路模拟器"
+        if self.current_file_path:
+            fileName = os.path.basename(self.current_file_path)
+            title = f"{fileName} - {title}"
+        else:
+            title = f"未命名 - {title}"
+        
+        if self.is_modified:
+            title = "*" + title
+        
+        self.setWindowTitle(title)
+
+    def new_file(self):
+        self.files_manager.new_file()
+
+    def save_file(self):
+        return self.files_manager.save_file()
+
+    def open_file(self):
+        self.files_manager.open_file()
+
+    def save_file_as(self):
+        return self.files_manager.save_file_as()
 
     def _on_selection_changed(self):
         items = self.scene.selectedItems()
@@ -274,6 +337,7 @@ class CircuitSimulator(QMainWindow):
         self.scene.components = []
         self.scene.wires = []
         self.statusBar().showMessage("场景已清除")
+        self._set_modified(True)  # 标记为已修改
     
     #文件新建存储打开功能待实现
     def new_file(self):
