@@ -74,7 +74,7 @@ class ParameterEditorDock(QDockWidget):
         capacitance_edit.setValue(component.params["capacitance"])
         capacitance_edit.valueChanged.connect(lambda v: component.set_param("capacitance", v))
         
-        self.layout.addRow("电容值 (F)", capacitance_edit)
+        self.layout.addRow("电容值 (uF)", capacitance_edit)
     
     def _add_inductor_parameters(self, component):
         """添加电感特定参数"""
@@ -83,7 +83,7 @@ class ParameterEditorDock(QDockWidget):
         inductance_edit.setValue(component.params["inductance"])
         inductance_edit.valueChanged.connect(lambda v: component.set_param("inductance", v))
         
-        self.layout.addRow("电感值 (H)", inductance_edit)
+        self.layout.addRow("电感值 (mH)", inductance_edit)
     
     def _add_voltage_source_parameters(self, component):
         """添加电压源特定参数"""

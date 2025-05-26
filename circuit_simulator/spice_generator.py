@@ -111,7 +111,7 @@ def generate_spice_netlist(scene):
                 circuit.C(comp.name, 
                          node_map[comp.pins['left']], 
                          node_map[comp.pins['right']], 
-                         comp.params["capacitance"])
+                         comp.params["capacitance"]*1e-6)
             else:
                 # 默认值为1uF
                 circuit.C(comp.name, 
@@ -123,7 +123,7 @@ def generate_spice_netlist(scene):
                 circuit.L(comp.name, 
                          node_map[comp.pins['left']], 
                          node_map[comp.pins['right']], 
-                         comp.params["inductance"])
+                         comp.params["inductance"]*1e-3)
             else:
                 # 默认值为1mH
                 circuit.L(comp.name, 

@@ -10,7 +10,7 @@
 
 非线性元件：二极管D（默认特征电流Is为1e-14安培）
 
-交流元件：电容C（默认电容值为1微法），电感L（默认电感值为1毫亨），交流源（目前只支持正弦波形）
+交流元件：电容C（默认电容值为1微法），电感L（默认电感值为1毫亨），交流源（目前只支持正弦波形和方波波形）
 
 # 代码结构：
 
@@ -41,6 +41,8 @@
 ## AC_source.py：
 
 在视图元件类GraphicComponentItem基础上派生两个元件类ACSourceItem和OscilloscopeItem，提供对交流电路分析的支持。
+
+另外还定义了OscilloscopeWindow(QMainWindow)，用于显示波形
 
 ## basic.py：
 

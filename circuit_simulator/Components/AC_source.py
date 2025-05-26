@@ -152,6 +152,8 @@ class OscilloscopeWindow(QMainWindow):
         # 自动调整坐标范围
         self.ax1.relim()
         self.ax1.autoscale_view()
+        self.ax2.relim()
+        self.ax2.autoscale_view()
         self.ax2.set_xlim(time[0], time[-1])
         
         self.canvas.draw()

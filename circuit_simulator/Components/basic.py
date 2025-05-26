@@ -29,7 +29,7 @@ class CapacitorItem(GraphicComponentItem):
     def __init__(self, name):
         super().__init__(name, "C")
         self.params = {
-            "capacitance": 1e-6,  # 电容值 (F)
+            "capacitance": 1,  # 电容值 (uF)
         }
         self.setAcceptHoverEvents(True)
 
@@ -53,7 +53,7 @@ class InductorItem(GraphicComponentItem):
     def __init__(self, name):
         super().__init__(name, "L")
         self.params = {
-            "inductance": 1e-3,  # 电感值 (H)
+            "inductance": 1,  # 电感值 (mH)
         }
         self.setAcceptHoverEvents(True)
 
