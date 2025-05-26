@@ -28,6 +28,12 @@ def generate_spice_netlist(scene):
     for wire in scene.wires:
         pin_groups.append({wire.start_pin, wire.end_pin})
         all_pins.update([wire.start_pin, wire.end_pin])
+
+    for comp in scene.components:
+        for pin_item in comp.pins.values():
+            if pin_item not in all_pins:
+                all_pins.add(pin_item)
+                pin_groups.append({pin_item})
         
     # 合并连通组（同一导线上的引脚应属于同一组）
     merged = True
@@ -129,6 +135,13 @@ def generate_spice_netlist(scene):
                      node_map[comp.pins['plus']], 
                      node_map[comp.pins['minus']], 
                      comp.spice_description())  # 假设元件有spice_description属性
+        elif comp.spice_type == 'OSC':
+            # 在OSC中维护CH1和CH2 的节点的名字
+            if hasattr(comp, 'pins') and 'ch1' in comp.pins and 'ch2' in comp.pins:
+                comp.connected_nodes['CH1'] = node_map.get(comp.pins['ch1'], None)
+                comp.connected_nodes['CH2'] = node_map.get(comp.pins['ch2'], None)
+            else:
+                print(f"Warning: Oscilloscope {comp.name} has no connected nodes.")
     #validate_connections(scene)  # 验证连接
     # 在pin中维护节点对应的spice节点名称
     for pin in all_pins:

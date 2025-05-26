@@ -1,5 +1,6 @@
 from PyQt5.QtWidgets import QDockWidget, QWidget, QFormLayout, QLabel, QLineEdit, QSpinBox, QDoubleSpinBox
 from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QPushButton,   QComboBox
 
 class ParameterEditorDock(QDockWidget):
     def __init__(self, parent=None):
@@ -95,6 +96,13 @@ class ParameterEditorDock(QDockWidget):
 
     def _add_ac_source_parameters(self, component):
         """添加交流源特定参数"""
+        # V_AC 的Type参数，只能在SIN, SQUARE, PULSE等波形中选择，因此要使用QComboBox
+        combo = QComboBox()
+        combo.addItems(["SIN", "SQUARE", "PULSE"])
+        combo.setCurrentText(str(self.current_item.params["waveform"]))
+        combo.currentTextChanged.connect(
+            lambda v: component.set_param("waveform", v))
+
         amplitude_edit = QDoubleSpinBox()
         amplitude_edit.setRange(0.1, 1000)
         amplitude_edit.setValue(component.params["amplitude"])
@@ -110,9 +118,42 @@ class ParameterEditorDock(QDockWidget):
         phase_edit.setValue(component.params["phase"])
         phase_edit.valueChanged.connect(lambda v: component.set_param("phase", v))
         
+        dc_offset_edit = QDoubleSpinBox()
+        dc_offset_edit.setRange(-1000, 1000)
+        dc_offset_edit.setValue(component.params.get("dc_offset", 0))
+        dc_offset_edit.valueChanged.connect(lambda v: component.set_param("dc_offset", v))
+
+        # 方波特有参数
+        duty_cycle_edit = QDoubleSpinBox()
+        duty_cycle_edit.setRange(0, 100)
+        duty_cycle_edit.setValue(component.params.get("duty_cycle", 50))
+        duty_cycle_edit.valueChanged.connect(lambda v: component.set_param("duty_cycle", v))
+
+        # 脉冲特有参数
+        rise_time_edit = QDoubleSpinBox()
+        rise_time_edit.setRange(0.0, 1.0)
+        rise_time_edit.setValue(component.params.get("rise_time", 1e-6))
+        rise_time_edit.valueChanged.connect(lambda v: component.set_param("rise_time", v))
+
+        fall_time_edit = QDoubleSpinBox()
+        fall_time_edit.setRange(0.0, 1.0)
+        fall_time_edit.setValue(component.params.get("fall_time", 1e-6))
+        fall_time_edit.valueChanged.connect(lambda v: component.set_param("fall_time", v))
+
+        self.layout.addRow("波形类型", combo)
         self.layout.addRow("幅值 (V)", amplitude_edit)
         self.layout.addRow("频率 (Hz)", frequency_edit)
         self.layout.addRow("相位 (°)", phase_edit)
+        self.layout.addRow("直流偏置 (V)", dc_offset_edit)
+        # 加入一个label来表示下面的参数是方波特有的
+        square_label = QLabel("方波特有参数")
+        self.layout.addRow(square_label)
+        self.layout.addRow("占空比 (%)", duty_cycle_edit)
+        # 脉冲特有参数
+        pulse_label = QLabel("脉冲特有参数")
+        self.layout.addRow(pulse_label)
+        self.layout.addRow("上升时间 (s)", rise_time_edit)
+        self.layout.addRow("下降时间 (s)", fall_time_edit)
 
     def _add_oscilloscope_parameters(self, component):
         """添加示波器特定参数"""
@@ -124,6 +165,14 @@ class ParameterEditorDock(QDockWidget):
         time_range_edit.valueChanged.connect(lambda v: component.set_param("time_range", v))
 
         self.layout.addRow("时间范围 (s)", time_range_edit)
+        btn = QPushButton("显示波形窗口")
+        btn.clicked.connect(component.show_window)
+        self.layout.addRow(btn)
+
+    def _request_rerun_simulation(self):
+        """触发重新仿真"""
+        main_window = self.parent()  # 获取主窗口引用
+        main_window._run_spice_simulation()  # 调用主窗口的方法
 
     def _add_diode_parameters(self, component):
         """添加二极管特定参数"""

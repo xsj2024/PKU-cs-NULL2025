@@ -37,6 +37,18 @@ class CapacitorItem(GraphicComponentItem):
         """生成SPICE网表描述"""
         return f"{self.name} {self.pins['left'].node_name} {self.pins['right'].node_name} {self.params['capacitance']}"
 
+    def set_param(self, param_name, value):
+        """设置参数值"""
+        if param_name in self.params:
+            # 检查值的范围
+            if param_name == "capacitance":
+                if value < 0:
+                    print("电容值不能为负数!")
+                else:
+                    self.params[param_name] = value
+        else:
+            raise ValueError(f"Parameter {param_name} not found in {self.name}")
+
 class InductorItem(GraphicComponentItem):
     def __init__(self, name):
         super().__init__(name, "L")
@@ -48,6 +60,18 @@ class InductorItem(GraphicComponentItem):
     def spice_description(self):
         """生成SPICE网表描述"""
         return f"{self.name} {self.pins['left'].node_name} {self.pins['right'].node_name} {self.params['inductance']}"
+
+    def set_param(self, param_name, value):
+        """设置参数值"""
+        if param_name in self.params:
+            # 检查值的范围
+            if param_name == "inductance":
+                if value < 0:
+                    print("电感值不能为负数!")
+                else:
+                    self.params[param_name] = value
+        else:
+            raise ValueError(f"Parameter {param_name} not found in {self.name}")
 
 class VoltageSourceItem(GraphicComponentItem):
     def __init__(self, name):
@@ -61,6 +85,18 @@ class VoltageSourceItem(GraphicComponentItem):
         """生成SPICE网表描述"""
         return f"{self.name} {self.pins['plus'].node_name} {self.pins['minus'].node_name} {self.params['voltage']}"
 
+    def set_param(self, param_name, value):
+        """设置参数值"""
+        if param_name in self.params:
+            # 检查值的范围
+            if param_name == "voltage":
+                if value < 0:
+                    print("电压值不能为负数!")
+                else:
+                    self.params[param_name] = value
+        else:
+            raise ValueError(f"Parameter {param_name} not found in {self.name}")
+        
 class GroundItem(GraphicComponentItem):
     def __init__(self, name):
         super().__init__(name, "GND")
@@ -84,4 +120,15 @@ class DiodeItem(GraphicComponentItem):
         # 由于二极管需要预先定义模型，所以正常运行时这里不会被调用
         raise NotImplementedError("Diode model not implemented in SPICE.")
 
+    def set_param(self, param_name, value):
+        """设置参数值"""
+        if param_name in self.params:
+            # 检查值的范围
+            if param_name == "Is":
+                if value < 0:
+                    print("饱和电流不能为负数!")
+                else:
+                    self.params[param_name] = value
+        else:
+            raise ValueError(f"Parameter {param_name} not found in {self.name}")
 

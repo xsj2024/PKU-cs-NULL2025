@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import (
 import sys
 from PyQt5.QtWidgets import QMainWindow, QGraphicsView, QToolBar, QAction, QVBoxLayout, QWidget, QMessageBox
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor, QPainter, QBrush, QTransform,QKeySequence
+from PyQt5.QtGui import QColor, QPainter, QBrush, QTransform,QKeySequence, QPainterPath
 from PyQt5.QtWidgets import QShortcut
 from shortcuts_manager import shortcutManager,shortcutSettingDialog
 from Components.AC_source import ACSourceItem, OscilloscopeItem
@@ -16,7 +16,7 @@ from parameter_editor import ParameterEditorDock
 from Components.components import ComponentItem, PinItem, WireItem, CircuitScene
 from Components.ComponentItem import GraphicComponentItem
 from Components.basic import ResistorItem, CapacitorItem, InductorItem, VoltageSourceItem, GroundItem, DiodeItem
-
+import numpy as np
 class CircuitSimulator(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -51,7 +51,7 @@ class CircuitSimulator(QMainWindow):
         self._setup_shortcuts()
 
         # 参数编辑器初始化
-        self.param_editor = ParameterEditorDock()
+        self.param_editor = ParameterEditorDock(self)
         self.addDockWidget(Qt.RightDockWidgetArea, self.param_editor)
         
         # 连接场景选择变化信号
@@ -194,10 +194,30 @@ class CircuitSimulator(QMainWindow):
             if has_ac_source:
                 print("包含交流源，仿真将使用AC分析。")
 
-                # 模拟操作(交流分析）
+                osc_time_ranges = [
+                    osc.params["time_range"] 
+                    for osc in self.scene.items() 
+                    if isinstance(osc, OscilloscopeItem)
+                ]
+                osc = next((i for i in self.scene.items() if isinstance(i, OscilloscopeItem)), None)
+
+                # 取最大时间范围（或平均/首个示波器的设置）
+                time_range = max(osc_time_ranges) if osc_time_ranges else 0.02
                 simulator = circuit.simulator()
-                analysis = simulator.transient(step_time=1e-6, end_time=1e-3)
+                # 模拟操作(交流分析）
+                analysis = simulator.transient(
+                    step_time=time_range / 1000,  # 自动计算步长
+                    end_time=time_range
+                )
                 print("仿真成功！")
+                # 更新示波器波形
+                if osc:
+                    time = np.array(analysis.time)
+                    ch1 = np.array(analysis[osc.connected_nodes["CH1"]]) if osc.connected_nodes["CH1"] in analysis.nodes else np.zeros_like(time)
+                    ch2 = np.array(analysis[osc.connected_nodes["CH2"]]) if osc.connected_nodes["CH2"] in analysis.nodes else np.zeros_like(time)
+        
+                    osc.show_window()
+                    osc.window.update_waveforms(time, ch1, ch2)
                 # 更新所有引脚的电压信号函数
                 dict = analysis.nodes
                 for comp in self.scene.components:
@@ -277,3 +297,30 @@ class CircuitSimulator(QMainWindow):
             "clear_scene": self._clear_scene
         }
         self.shortcut_manager.register_all_shortcuts(shortcut_callbacks)
+
+    def _update_oscilloscopes(self, analysis):
+        for item in self.scene.items():
+            if isinstance(item, OscilloscopeItem) and item.params["show_waveform"]:
+                for channel in ["CH1", "CH2"]:
+                    if item.connected_nodes[channel]:
+                        self._draw_waveform(item, channel, analysis)
+
+    def _draw_waveform(self, osc, channel, analysis):
+        """绘制单个通道波形"""
+        node = osc.connected_nodes[channel]
+        if node not in analysis:
+            return
+        
+        time = analysis.time
+        voltage = analysis[node]
+    
+        # 归一化到示波器坐标系
+        path = QPainterPath()
+        x_scale = osc.plot_area.rect().width() / osc.params["time_range"]
+        y_scale = osc.plot_area.rect().height() / (osc.params[f"{channel.lower()}_scale"] * 8)  # 8div
+    
+        path.moveTo(30, -voltage[0] * y_scale)
+        for t, v in zip(time[1:], voltage[1:]):
+            path.lineTo(30 + t * x_scale, -v * y_scale)
+    
+        osc.waveforms[channel].setPath(path)

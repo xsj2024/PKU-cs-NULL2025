@@ -36,7 +36,7 @@ class GraphicComponentItem(QGraphicsPixmapItem):
             "GND": "icons/GND.png",
             "L": "icons/L.png",
             "V_AC": "icons/AC.png",
-            "OSC": "icons/oscilloscope.png",
+            "OSC": "icons/osc.png",
         }.get(self.spice_type, "icons/default.png")
 
     def _load_icon(self, path):
