@@ -52,6 +52,10 @@
 
 管理快捷键功能
 
+## files_manager.py
+
+文件打开、保存、创建等功能
+
 ## parameter_editor.py：
 
 定义了一个编辑元件参数的侧面窗口ParameterEditorDock(QDockWidget)
