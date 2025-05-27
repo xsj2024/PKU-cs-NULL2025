@@ -81,7 +81,8 @@ class CircuitSimulator(QMainWindow):
             os.path.join(base_dir, "default_bkgrounds", "nakano_miku_2.jpg"),
             os.path.join(base_dir, "default_bkgrounds", "nakano_miku_3.jpg"),
             os.path.join(base_dir, "default_bkgrounds", "test.jpg"),
-            os.path.join(base_dir, "default_bkgrounds", "test2.jpg"),
+            os.path.join(base_dir, "default_bkgrounds", "test2.png"),
+            os.path.join(base_dir, "default_bkgrounds", "pure_white.jpg"),
             #可以添加更多图片
         ]
         self.background_config_path = os.path.join(base_dir,"user_background.json") #统一在该文件进行读取图片路径
