@@ -10,7 +10,7 @@ import os
 from PyQt5.QtWidgets import QMainWindow, QGraphicsView, QToolBar, QAction, QVBoxLayout, QWidget, QMessageBox
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QColor, QPainter, QBrush, QTransform,QKeySequence, QPainterPath
-from PyQt5.QtWidgets import QShortcut
+from PyQt5.QtWidgets import QShortcut, QLabel
 from shortcuts_manager import shortcutManager,shortcutSettingDialog
 from files_manager import FilesManager
 from Components.AC_source import ACSourceItem, OscilloscopeItem
@@ -29,7 +29,7 @@ class CircuitSimulator(QMainWindow):
         self._create_component_dock()
 
         # 初始化场景和视图
-        self.scene = CircuitScene()
+        self.scene = CircuitScene(self)
         self.view = QGraphicsView(self.scene)
         self.view.setRenderHint(QPainter.Antialiasing)  # 启用抗锯齿
         self.view.setRenderHint(QPainter.TextAntialiasing)  # 文本抗锯齿
@@ -66,6 +66,12 @@ class CircuitSimulator(QMainWindow):
 
         # 连接场景修改信号 关于文件存储
         self.scene.changed.connect(self._on_scene_changed)
+
+        # 在状态栏中增加一个悬停引脚电压的显示
+        self.voltage_label = QLabel("悬停引脚查看电压")
+        # 处在于状态栏的右侧
+        self.voltage_label.setAlignment(Qt.AlignRight)
+        self.statusBar().addPermanentWidget(self.voltage_label)
 
     def _on_scene_changed(self):
         """场景发生变化时标记为已修改"""
@@ -388,3 +394,18 @@ class CircuitSimulator(QMainWindow):
             path.lineTo(30 + t * x_scale, -v * y_scale)
     
         osc.waveforms[channel].setPath(path)
+
+    def set_hovered_pin(self, pin_item):
+        """设置当前悬停的引脚"""
+        if hasattr(self, 'hovered_pin'):
+            self.hovered_pin.set_hovered(False)
+        self.hovered_pin = pin_item
+        pin_item.set_hovered(True)
+        self.voltage_label.setText(f"悬停引脚: {pin_item.node_name} 电压: {pin_item.get_voltage():.2f} V")
+
+    def clear_hovered_pin(self):
+        """清除当前悬停的引脚"""
+        if hasattr(self, 'hovered_pin'):
+            self.hovered_pin.set_hovered(False)
+            self.hovered_pin = None
+        self.voltage_label.setText("悬停引脚查看电压")
