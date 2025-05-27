@@ -19,24 +19,35 @@ from Components.components import ComponentItem, PinItem, WireItem, CircuitScene
 from Components.ComponentItem import GraphicComponentItem
 from Components.basic import ResistorItem, CapacitorItem, InductorItem, VoltageSourceItem, GroundItem, DiodeItem
 import numpy as np
+from PyQt5.QtGui import QPixmap, QPalette, QBrush #用于设置背景
+from background import BackgroundDialog
+from PyQt5.QtCore import QFileInfo #将字符串路径和文件系统的文件关联起来用
+import json #用于JSON文件操作
+from PyQt5.QtCore import QStandardPaths, QDir #用于确保目录存在
+
 class CircuitSimulator(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("PyQt + PySpice 电路模拟器")
-        self.setGeometry(100, 100, 1400, 800)
+        self.setGeometry(500, 500, 1400, 800)
         
         # 创建左侧元件停靠窗口
-        self._create_component_dock()
+        self.component_dock = self._create_component_dock()
 
         # 初始化场景和视图
         self.scene = CircuitScene()
+        self.scene.setBackgroundBrush(QBrush(Qt.transparent)) #设置场景为透明
         self.view = QGraphicsView(self.scene)
         self.view.setRenderHint(QPainter.Antialiasing)  # 启用抗锯齿
         self.view.setRenderHint(QPainter.TextAntialiasing)  # 文本抗锯齿
         self.view.setDragMode(QGraphicsView.RubberBandDrag)
+        # 设置QGraphicsView透明和视口背景透明
+        self.view.setStyleSheet("background: transparent; border: none;")
+        self.view.viewport().setStyleSheet("background: transparent;")
         
         # 主布局
         central_widget = QWidget()
+        central_widget.setStyleSheet("background: transparent;") #主窗口设置透明
         layout = QVBoxLayout()
         layout.addWidget(self.view)
         central_widget.setLayout(layout)
@@ -47,10 +58,41 @@ class CircuitSimulator(QMainWindow):
         
         # 状态栏显示操作提示
         self.statusBar().showMessage("拖放元件并连线，点击仿真运行SPICE")
+        #为状态栏提供一个对比背景和浅色文字
+        self.statusBar().setStyleSheet("""
+            QStatusBar {
+                background: rgba(45, 45, 45, 0.5); /* 状态栏半透明深色背景 */
+                color: white; /* 状态栏文字白色 */
+                border-top: 1px solid rgba(80, 80, 80, 0.4); /* 顶部边框线 */
+            }
+            QStatusBar::item {
+                border: none;
+            }
+        """)
 
         # 快捷键初始化
         self.shortcut_manager = shortcutManager(self)
         self._setup_shortcuts()
+
+        #背景图默认数据
+        base_dir = os.path.dirname(os.path.abspath(__file__)) # 当前文件所在目录的绝对路径
+        self.default_background_images = [
+            os.path.join(base_dir, "default_bkgrounds", "nakano_miku_1.jpg"),
+            os.path.join(base_dir, "default_bkgrounds", "nakano_miku_2.jpg"),
+            os.path.join(base_dir, "default_bkgrounds", "nakano_miku_3.jpg"),
+            os.path.join(base_dir, "default_bkgrounds", "test.jpg"),
+            os.path.join(base_dir, "default_bkgrounds", "test2.jpg"),
+            os.path.join(base_dir, "default_bkgrounds", "星空摄影1.jpg"),
+            os.path.join(base_dir, "default_bkgrounds", "星空摄影2.jpg"),
+            #可以添加更多图片
+        ]
+        self.background_config_path = os.path.join(base_dir,"user_background.json") #统一在该文件进行读取图片路径
+        self._current_background_path = None # 当前背景的路径
+        #背景图初始化
+        self._set_initial_default_background()
+        # 确保在调整窗口大小时背景图片能够正确更新
+        self.resizeEvent_orig = self.resizeEvent
+        self.resizeEvent = self._custom_resize_event
 
         # 文件管理初始化
         self.current_file_path = None
@@ -60,7 +102,23 @@ class CircuitSimulator(QMainWindow):
         # 参数编辑器初始化
         self.param_editor = ParameterEditorDock(self)
         self.addDockWidget(Qt.RightDockWidgetArea, self.param_editor)
-        
+        self.param_editor.setStyleSheet("""
+            QDockWidget {
+                background: transparent; /* Dock整体背景透明 */
+                border: 2px solid rgba(80, 80, 80, 0.9); /* 可选：Dock的整体边框 */
+                /* color: white; */ /* 直接在QDockWidget上设置color可能不影响标题 */
+            }
+            QDockWidget::title { /* 针对标题栏 */
+                text-align: left; /* 标题文本左对齐 */
+                background: rgba(50, 50, 50, 0.5); /* 标题栏半透明深色背景 */
+                padding: 6px; /* 标题栏内边距 */
+                color: white; /* 标题文字白色 */
+                border: none; /* 可以去掉标题栏自身的边框，如果QDockWidget已有边框 */
+                /* border-bottom: 1px solid rgba(150,150,150,0.5); */ /* 可选：标题栏下的分隔线 */
+            }
+        """)
+        if self.param_editor.widget():
+            self.param_editor.widget().setStyleSheet("background: transparent;")
         # 连接场景选择变化信号
         self.scene.selectionChanged.connect(self._on_selection_changed)
 
@@ -134,23 +192,54 @@ class CircuitSimulator(QMainWindow):
         # 设置停靠窗口的大小
         dock.setMinimumWidth(350)
         
+        # 设置QDockWidget本身背景透明
+        dock.setStyleSheet("QDockWidget { background: transparent; border: 1px solid gray; }")
+
         # 使用选项卡分类元件
         tab_widget = QTabWidget()
-
+        tab_widget.setStyleSheet("""
+            QTabWidget::pane { /* 标签页内容区域的框架 */
+                border: 1px solid rgba(200, 200, 200, 0.5); /* 半透明边框 */
+                background: transparent; /* 使内容区域透明 */
+                top: -1px; /* 轻微调整以更好地与标签栏对齐 */
+            }
+            QTabBar::tab { /* 标签本身的样式 */
+                background: rgba(80, 80, 80, 0.5); /* 半透明深色背景 */
+                border: 1px solid rgba(150, 150, 150, 0.6);
+                border-bottom-color: transparent; /* 使选中的标签底部不显示边框，与pane融合 */
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+                min-width: 8ex;
+                padding: 5px 10px; /* 调整内边距 */
+                color: white; /* 白色文字 */
+                font-weight: bold;
+            }
+            QTabBar::tab:selected {
+                background: rgba(120, 120, 120, 0.6); /* 选中时更亮一些的半透明背景 */
+                border-color: rgba(200, 200, 200, 0.7);
+                border-bottom-color: transparent; /* 确保与pane的透明背景融合 */
+            }
+            QTabBar::tab:!selected:hover {
+                background: rgba(100, 100, 100, 0.5); /* 鼠标悬停在未选中标签上 */
+            }
+        """)
         # 基础元件选项卡
         basic_tab = QWidget()
+        basic_tab.setStyleSheet("background: transparent;")
         basic_layout = QVBoxLayout()
         self._add_component_buttons(basic_layout, ["电阻", "电压源", "接地"])
         basic_tab.setLayout(basic_layout)
         
         # 半导体选项卡（未来扩展）
         semi_tab = QWidget()
+        semi_tab.setStyleSheet("background: transparent;")
         semi_layout = QVBoxLayout()
         self._add_component_buttons(semi_layout, ["二极管"])
         semi_tab.setLayout(semi_layout)
         
         # 交流元件选项卡
         ac_tab = QWidget()
+        ac_tab.setStyleSheet("background: transparent;")
         ac_layout = QVBoxLayout()
         self._add_component_buttons(ac_layout, ["交流源", "电容", "电感" , "示波器"])
         ac_tab.setLayout(ac_layout)
@@ -160,6 +249,19 @@ class CircuitSimulator(QMainWindow):
         tab_widget.addTab(ac_tab, "交流元件")
 
         dock.setWidget(tab_widget)
+        dock.setStyleSheet("""
+            QDockWidget {
+                background: transparent;
+                border: 2px solid rgb(100, 100, 100, 0.9);
+            }
+            QDockWidget::title {
+                text-align: left;
+                background: rgba(50, 50, 50, 0.55);
+                padding: 6px;
+                color: white;
+                border: none;
+            }
+        """)
         self.addDockWidget(Qt.LeftDockWidgetArea, dock)
     
     def _add_component_buttons(self, layout, components, enabled=True):
@@ -168,16 +270,28 @@ class CircuitSimulator(QMainWindow):
             btn = QPushButton(comp)
             btn.setEnabled(enabled)
             btn.clicked.connect(lambda _, c=comp: self._add_component(c))
+            # 修改按钮样式适应透明背景
             btn.setStyleSheet("""
                 QPushButton {
                     padding: 8px;
                     font-size: 14px;
                     text-align: left;
-                    border: 1px solid #ddd;
+                    border: 1px solid rgba(204, 204, 204, 0.6); /* 半透明浅色边框 */
                     border-radius: 4px;
+                    background-color: rgba(70, 70, 70, 0.5);  /* 半透明深色背景 */
+                    color: white;                             /* 白色文字 */
                 }
                 QPushButton:hover {
-                    background: #f0f0f0;
+                    background-color: rgba(90, 90, 90, 0.5); /* 悬停时略亮/更不透明 */
+                    border-color: rgba(221, 221, 221, 0.7);
+                }
+                QPushButton:pressed {
+                    background-color: rgba(50, 50, 50, 0.5);  /* 按下时 */
+                }
+                QPushButton:disabled { /* 为禁用状态也提供样式 */
+                    background-color: rgba(100, 100, 100, 0.2);
+                    color: rgba(200, 200, 200, 0.5);
+                    border-color: rgba(150, 150, 150, 0.3);
                 }
             """)
             layout.addWidget(btn)
@@ -186,21 +300,33 @@ class CircuitSimulator(QMainWindow):
     def _create_toolbar(self):
         """创建工具栏按钮"""
         toolbar = QToolBar("元件")
+        # 为工具栏提供半透明深色背景，设置按钮文字为浅色文字
+        toolbar.setStyleSheet("""
+            QToolBar {
+                background: rgba(45, 45, 45, 0.65); /* 工具栏半透明深色背景 */
+                border: 1px solid rgba(80, 80, 80, 0.5);
+                padding: 2px;
+                spacing: 4px; /* 项目间距 */
+            }
+            QToolButton { /* 针对工具栏中的按钮 (QAction) */
+                color: white; /* 动作文字白色 */
+                background-color: transparent; /* 按钮在工具栏上的背景透明 */
+                padding: 5px;
+                margin: 1px;
+                border-radius: 3px;
+            }
+            QToolButton:hover {
+                background-color: rgba(100, 100, 100, 0.55);
+            }
+            QToolButton:pressed {
+                background-color: rgba(70, 70, 70, 0.65);
+            }
+            /* 如果工具栏有自己的标题 (例如可浮动时)，设置其颜色 */
+            QToolBar QLabel { 
+                color: white;
+            }
+        """)
         self.addToolBar(toolbar)
-        
-        # 添加电阻
-        action_resistor = QAction("电阻", self)
-        action_resistor.triggered.connect(lambda: self._add_component("R"))
-        toolbar.addAction(action_resistor)
-        
-        # 添加电压源
-        action_voltage = QAction("电压源", self)
-        action_voltage.triggered.connect(lambda: self._add_component("V"))
-        toolbar.addAction(action_voltage)
-        
-        action_gnd = QAction("接地", self)
-        action_gnd.triggered.connect(lambda: self._add_component("GND"))
-        toolbar.addAction(action_gnd)
         
         # 添加仿真按钮
         action_simulate = QAction("运行SPICE", self)
@@ -216,6 +342,10 @@ class CircuitSimulator(QMainWindow):
         action_shortcuts.setStatusTip("自定义快捷键")
         action_shortcuts.triggered.connect(self.show_shortcut_settings)
         toolbar.addAction(action_shortcuts)
+
+        action_setbkground = QAction("背景设置",self)
+        action_setbkground.triggered.connect(self.open_background_dialog)
+        toolbar.addAction(action_setbkground)
 
     def show_shortcut_settings(self):
         self.shortcut_manager.show_settings_dialog()
@@ -338,16 +468,6 @@ class CircuitSimulator(QMainWindow):
         self.scene.wires = []
         self.statusBar().showMessage("场景已清除")
         self._set_modified(True)  # 标记为已修改
-    
-    #文件新建存储打开功能待实现
-    def new_file(self):
-        print("成功新建文档")
-
-    def save_file(self):
-        print("成功保存文档")
-
-    def open_file(self):
-        print("成功打开文档")
 
     def _setup_shortcuts(self):
         shortcut_callbacks = {
@@ -388,3 +508,91 @@ class CircuitSimulator(QMainWindow):
             path.lineTo(30 + t * x_scale, -v * y_scale)
     
         osc.waveforms[channel].setPath(path)
+
+    def _set_background_from_path(self, image_path):
+        if not image_path or not QFileInfo(image_path).exists():
+            print(f"警告: 背景图片路径无效或不存在: {image_path}")
+            return False
+
+        try:
+            pixmap = QPixmap(image_path)
+            if pixmap.isNull():
+                print(f"错误: 无法加载图片 {image_path}")
+                return False
+
+            current_palette = self.palette()  #返回调色板对象（管理控件的各种颜色和画刷
+            scaled_pixmap = pixmap.scaled(self.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+            current_palette.setBrush(QPalette.Window, QBrush(scaled_pixmap))
+            self.setPalette(current_palette)
+            self.setAutoFillBackground(True)
+            self._current_background_path = image_path
+            self._save_background_setting()
+            print(f"背景已设置为: {image_path}")
+            return True
+        except Exception as e:
+            print(f"设置背景时出错 ({image_path}): {e}")
+            return False
+
+    def _set_initial_default_background(self):
+        if self._set_background_from_path(self._load_background_setting_path()):
+            return True
+        if self.default_background_images:
+            # 尝试设置列表中的第一个默认图片
+            if not self._set_background_from_path(self.default_background_images[0]):
+                print("未能成功设置初始默认背景。请检查图片路径和文件。")
+                return False
+            return True
+        else:
+            print("没有默认背景图片，未初始背景")
+            return False
+
+    def open_background_dialog(self):
+        dialog = BackgroundDialog(self,self.default_background_images)
+        dialog.exec_()
+    
+    # 处理窗口的放缩
+    def _custom_resize_event(self, event):
+        self.resizeEvent_orig(event)
+        if self._current_background_path: # 如果有当前背景路径
+            # 从原始路径重新加载和缩放图片质量应该会更优一些
+            self._set_background_from_path(self._current_background_path)
+        else:
+            # 检查当前是否已设置背景画刷
+            palette = self.palette() #返回调色板对象（管理控件的各种颜色和画刷
+            brush = palette.brush(QPalette.Window) #返回窗口背景角色的画刷
+            if brush.style() != Qt.NoBrush and brush.texture().isNull() is False: #判断是否设置了背景图片
+                pixmap = brush.texture() # 获取当前的像素图对象
+                if not pixmap.isNull():
+                    scaled_pixmap = pixmap.scaled(self.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+                    palette.setBrush(QPalette.Window, QBrush(scaled_pixmap))
+                    self.setPalette(palette)
+    
+    def _save_background_setting(self):
+        """将当前背景图片路径保存到JSON配置文件"""
+        if not self.background_config_path:
+            print("错误: 配置文件路径未设置，无法保存背景。")
+            return
+
+        settings = {}
+        settings['background_image_path'] = self._current_background_path
+        try:
+            # 确保配置文件所在的目录存在
+            os.makedirs(os.path.dirname(self.background_config_path), exist_ok=True)
+            with open(self.background_config_path, 'w', encoding='utf-8') as f:
+                json.dump(settings, f, ensure_ascii=False, indent=4)
+            print(f"背景设置已保存到: {self.background_config_path}")
+        except Exception as e:
+            print(f"错误: 无法保存背景设置到 {self.background_config_path}: {e}")
+    
+    def _load_background_setting_path(self):
+        """从JSON配置文件加载背景图片路径"""
+        if not self.background_config_path or not os.path.exists(self.background_config_path):
+            print(f"配置文件不存在或路径无效: {self.background_config_path}。将使用默认背景。")
+            return None
+        try:
+            with open(self.background_config_path, 'r', encoding='utf-8') as f:
+                settings = json.load(f)
+                return settings.get('background_image_path')
+        except Exception as e:
+            print(f"错误: 无法加载背景设置从 {self.background_config_path}: {e}")
+            return None
