@@ -45,6 +45,9 @@ class PinItem(QGraphicsEllipseItem):
             # 创建电压标签
             self.voltage_label = QGraphicsSimpleTextItem(f"{self.voltage:.2f}V", self)
             self.voltage_label.setPos(self.x() + 10, self.y() - 20)
+        # 通知Scene更新显示
+        if self.scene():
+            self.scene().pin_hover(self, True)
         super().hoverEnterEvent(event)
         
     def hoverLeaveEvent(self, event):
@@ -52,6 +55,9 @@ class PinItem(QGraphicsEllipseItem):
         if (self.voltage is not None) and self.voltage_label is not None:
             self.scene().removeItem(self.voltage_label)
             self.voltage_label = None
+        # 通知Scene更新显示
+        if self.scene():
+            self.scene().pin_hover(self, False)
         super().hoverLeaveEvent(event)
 
 class ComponentItem(QGraphicsRectItem):
@@ -88,11 +94,12 @@ class ComponentItem(QGraphicsRectItem):
         return super().itemChange(change, value)
 
 class CircuitScene(QGraphicsScene):
-    def __init__(self):
+    def __init__(self, parent=None):
         super().__init__()
         self.components = []
         self.wires = []
         self.temp_wire = None  # 临时连线（鼠标拖动时显示）
+        self.main_window = parent  # 保存主窗口引用
 
     def start_wire_from_pin(self, pin):
         # 开始从引脚拖动连线
@@ -140,6 +147,15 @@ class CircuitScene(QGraphicsScene):
             del self.temp_start_pin
         super().mouseReleaseEvent(event)
 
+    def pin_hover(self, pin, is_hovered):
+        """处理引脚悬停事件"""
+        if is_hovered:
+            if pin.voltage is not None:
+                self.main_window.voltage_label.setText(f"Voltage at {pin.pin_name}: {pin.voltage:.2f} V")
+            else:
+                self.main_window.voltage_label.setText(f"Voltage at {pin.pin_name}: N/A")
+        else:
+            self.main_window.voltage_label.setText("")
 
 from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsScene
 from PyQt5.QtGui import QPainterPath
