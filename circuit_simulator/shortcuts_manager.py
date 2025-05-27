@@ -22,13 +22,16 @@ class shortcutManager(QObject):
         self.default_shortcuts = {
             "new_file": "Ctrl+N",
             "save_file": "Ctrl+S",
+            "resave_file":"Ctrl+Shift+S",
             "open_file": "Ctrl+O",
             "add_resistor": "Ctrl+Shift+R",
             #"add_capacitor": "Ctrl+Shift+C", 电容部分暂未实现
             "add_voltage": "Ctrl+Shift+V",
             "add_gnd": "Ctrl+Shift+G",
             "run_spice_simulation": "F6",
-            "clear_scene": "Ctrl+E"
+            "clear_scene": "Ctrl+E",
+            "show_shortcut_settings":"Alt+S",
+            "change_background":"Alt+B"
         }
         #当前快捷键配置
         self.current_shortcuts = {}
@@ -160,13 +163,16 @@ class shortcutSettingDialog(QDialog):
         display_names = {
             "new_file": "新建文件",
             "save_file": "保存文件",
+            "resave_file":"另存文件",
             "open_file": "打开文件",
             "add_resistor":"添加电阻",
             #"add_capacitor": "添加电容", 电容部分暂未实现
             "add_voltage": "添加电源",
             "add_gnd": "添加接地",
             "run_spice_simulation": "运行仿真",
-            "clear_scene": "清除电路"
+            "clear_scene": "清除电路",
+            "show_shortcut_settings":"查看快捷键",
+            "change_background":"修改背景图"
         }
         return display_names.get(action_name, action_name) # 没找到就返回原始输入的action_name
     

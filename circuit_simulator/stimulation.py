@@ -54,7 +54,7 @@ class CircuitSimulator(QMainWindow):
         self.setCentralWidget(central_widget)
         
         # 创建工具栏
-        self._create_toolbar()
+        self._create_menubar()
         
         # 状态栏显示操作提示
         self.statusBar().showMessage("拖放元件并连线，点击仿真运行SPICE")
@@ -301,11 +301,12 @@ class CircuitSimulator(QMainWindow):
             layout.addWidget(btn)
         layout.addStretch()  # 添加弹性空间
 
-    def _create_toolbar(self):
-        """创建工具栏按钮"""
-        toolbar = QToolBar("元件")
-        # 为工具栏提供半透明深色背景，设置按钮文字为浅色文字
-        toolbar.setStyleSheet("""
+    def _create_menubar(self):
+        """创建菜单栏按钮"""
+        main_menu_bar = self.menuBar()
+
+        # 为菜单栏提供半透明深色背景，设置按钮文字为浅色文字
+        main_menu_bar.setStyleSheet("""
             QToolBar {
                 background: rgba(45, 45, 45, 0.65); /* 工具栏半透明深色背景 */
                 border: 1px solid rgba(80, 80, 80, 0.5);
@@ -330,26 +331,55 @@ class CircuitSimulator(QMainWindow):
                 color: white;
             }
         """)
-        self.addToolBar(toolbar)
         
-        # 添加仿真按钮
-        action_simulate = QAction("运行SPICE", self)
-        action_simulate.triggered.connect(self._run_spice_simulation)
-        toolbar.addAction(action_simulate)
-        
-        # 添加清除按钮
-        action_clear = QAction("清除", self)
-        action_clear.triggered.connect(self._clear_scene)
-        toolbar.addAction(action_clear)
+        # 文件菜单
+        file_menu = main_menu_bar.addMenu("文件(&F)") # alt + f 打开文件菜单
+        # 新建文件
+        action_new_file = QAction("新建文件", self)
+        action_new_file.setStatusTip("创建一个新的电路文件")
+        action_new_file.triggered.connect(self.new_file) # 连接到已有的 new_file 方法
+        file_menu.addAction(action_new_file)
+        # 打开文件
+        action_open_file = QAction("打开文件", self)
+        action_open_file.setStatusTip("打开一个已存在的电路文件")
+        action_open_file.triggered.connect(self.open_file) # 连接到已有的 open_file 方法
+        file_menu.addAction(action_open_file)
+        # 保存文件
+        action_save_file = QAction("保存文件", self)
+        action_save_file.setStatusTip("保存当前电路文件")
+        action_save_file.triggered.connect(self.save_file) # 连接到已有的 save_file 方法
+        file_menu.addAction(action_save_file)
+        # 另存文件
+        action_save_as_file = QAction("另存文件", self)
+        action_save_as_file.setStatusTip("将当前电路文件另存为新文件")
+        action_save_as_file.triggered.connect(self.save_file_as) # 连接到已有的 save_file_as 方法
+        file_menu.addAction(action_save_as_file)
 
-        action_shortcuts = QAction("快捷键设置", self)
-        action_shortcuts.setStatusTip("自定义快捷键")
-        action_shortcuts.triggered.connect(self.show_shortcut_settings)
-        toolbar.addAction(action_shortcuts)
+        # 设置菜单
+        settings_menu = main_menu_bar.addMenu("设置(&E)") # alt + e 打开设置
+        # 背景设置
+        action_set_background = QAction("背景设置", self) 
+        action_set_background.setStatusTip("更改应用程序的背景图片")
+        action_set_background.triggered.connect(self.open_background_dialog) # 连接到已有的方法
+        settings_menu.addAction(action_set_background)
+        #快捷键设置
+        action_set_shortcuts = QAction("快捷键设置", self) 
+        action_set_shortcuts.setStatusTip("自定义快捷键")
+        action_set_shortcuts.triggered.connect(self.show_shortcut_settings) # 连接到已有的方法
+        settings_menu.addAction(action_set_shortcuts)
+        # 运行菜单
+        run_menu = main_menu_bar.addMenu("运行(&R)")
+        # 运行spice仿真
+        action_simulate = QAction("运行SPICE仿真", self)
+        action_simulate.setStatusTip("对当前电路进行SPICE仿真")
+        action_simulate.triggered.connect(self._run_spice_simulation) # 连接到已有的方法
+        run_menu.addAction(action_simulate)
+        # 清除按钮
+        action_clear_scene = QAction("清除场景", self)
+        action_clear_scene.setStatusTip("清空当前画布上的所有元件和连线")
+        action_clear_scene.triggered.connect(self._clear_scene) # 连接到已有的方法
+        run_menu.addAction(action_clear_scene)
 
-        action_setbkground = QAction("背景设置",self)
-        action_setbkground.triggered.connect(self.open_background_dialog)
-        toolbar.addAction(action_setbkground)
 
     def show_shortcut_settings(self):
         self.shortcut_manager.show_settings_dialog()
@@ -486,12 +516,15 @@ class CircuitSimulator(QMainWindow):
         shortcut_callbacks = {
             "new_file": self.new_file,
             "save_file": self.save_file,
+            "resave_file":self.save_file_as,
             "open_file": self.open_file,
             "add_resistor": lambda: self._add_component("R"),
             "add_voltage": lambda: self._add_component("V"),
             "add_gnd": lambda: self._add_component("GND"),
             "run_spice_simulation": self._run_spice_simulation,
-            "clear_scene": self._clear_scene
+            "clear_scene": self._clear_scene,
+            "show_shortcut_settings":self.show_shortcut_settings,
+            "change_background":self.open_background_dialog
         }
         self.shortcut_manager.register_all_shortcuts(shortcut_callbacks)
 
