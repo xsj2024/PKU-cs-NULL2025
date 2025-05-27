@@ -6,11 +6,11 @@ from PyQt5.QtCore import QPointF
 class FilesManager:
     def __init__(self, main_window):
         self.main_window = main_window
-        self.component_classes = main_window.get_component_classes_map()
+        self.component_classes_map = main_window.get_component_classes_map()
 
     def new_file(self):
         if self._maybe_save():
-            self.main_window.scene._clear_scene()
+            self.main_window._clear_scene() 
             self.main_window.current_file_path = None
             self.main_window._set_modified(False)
             self.main_window.statusBar().showMessage("已创建新文档")
@@ -32,12 +32,17 @@ class FilesManager:
             return self.save_file_as()
 
     def save_file_as(self):
+        suggested_filename = os.path.basename(self.main_window.current_file_path) if self.main_window.current_file_path else "未命名.circuit"
+        save_dir = os.path.dirname(self.main_window.current_file_path) if self.main_window.current_file_path else ""
+
         filePath, _ = QFileDialog.getSaveFileName(
             self.main_window, "保存电路文件",
-            self.main_window.current_file_path or "未命名.circuit",
+            os.path.join(save_dir, suggested_filename),
             "电路文件 (*.circuit);;所有文件 (*.*)"
         )
         if filePath:
+            if not filePath.endswith(".circuit") and not "." in os.path.basename(filePath):
+                filePath += ".circuit"
             return self._perform_save(filePath)
         return False
 
@@ -53,42 +58,42 @@ class FilesManager:
             return self.save_file()
         elif ret == QMessageBox.Cancel:
             return False
-        return True  # Discard
+        return True
 
     def _perform_save(self, filePath):
         try:
             data = {"components": [], "wires": []}
             scene = self.main_window.scene
+            GraphicComponentItemBase = self.component_classes_map.get('GraphicComponentItem')
 
-            for item in scene.items(): # Iterate all items to find components
-                if isinstance(item, self.component_classes['GraphicComponentItem']): # Use mapped base class
+            if not GraphicComponentItemBase:
+                QMessageBox.critical(self.main_window, "保存错误", "基本元件类 'GraphicComponentItem' 未在映射中定义。")
+                return False
+
+            for item in scene.components:
+                if isinstance(item, GraphicComponentItemBase):
                     comp_data = {
                         "name": item.name,
-                        "type": item.component_type,
+                        "spice_type": item.spice_type,
                         "pos": {"x": item.pos().x(), "y": item.pos().y()},
                         "rotation": item.rotation(),
                         "params": item.params.copy()
                     }
-                    # Specific handling for ACSourceItem and OscilloscopeItem params if needed
-                    # This assumes 'params' dict in GraphicComponentItem is comprehensive enough
-                    # or specific items update their 'params' dict correctly.
-                    if isinstance(item, self.component_classes['ACSourceItem']):
-                         pass # Assuming its params are already in item.params
-                    elif isinstance(item, self.component_classes['OscilloscopeItem']):
-                         pass # Assuming its params are already in item.params
-
                     comp_data["pins_nodes"] = {pin_key: pin.node_name for pin_key, pin in item.pins.items()}
                     data["components"].append(comp_data)
 
-            for wire in scene.wires: # Assuming scene.wires is correctly maintained
+            for wire in scene.wires:
                 if wire.start_pin and wire.end_pin:
                     start_comp = wire.start_pin.parentItem()
                     end_comp = wire.end_pin.parentItem()
+                    
+                    if not (isinstance(start_comp, GraphicComponentItemBase) and isinstance(end_comp, GraphicComponentItemBase)):
+                        continue
 
                     start_pin_key = next((key for key, val in start_comp.pins.items() if val == wire.start_pin), None)
                     end_pin_key = next((key for key, val in end_comp.pins.items() if val == wire.end_pin), None)
 
-                    if start_comp and end_comp and start_pin_key and end_pin_key:
+                    if start_pin_key and end_pin_key:
                         wire_data = {
                             "start_comp_name": start_comp.name,
                             "start_pin_key": start_pin_key,
@@ -98,12 +103,12 @@ class FilesManager:
                         }
                         data["wires"].append(wire_data)
             
-            with open(filePath, 'w') as f:
+            with open(filePath, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=4)
             
             self.main_window.current_file_path = filePath
-            self.main_window._set_modified(False) # This will also update title
-            self.main_window.statusBar().showMessage(f"文件已保存到 {filePath}")
+            self.main_window._set_modified(False)
+            self.main_window.statusBar().showMessage(f"文件已保存到 {os.path.basename(filePath)}")
             print(f"成功保存文档: {filePath}")
             return True
         except Exception as e:
@@ -113,52 +118,47 @@ class FilesManager:
 
     def _perform_load(self, filePath):
         try:
-            with open(filePath, 'r') as f:
+            with open(filePath, 'r', encoding='utf-8') as f:
                 data = json.load(f)
 
             scene = self.main_window.scene
-            scene.clear_all()
+            scene.clear()
             
-            components_map = {}
+            components_map = {} 
 
             for comp_data in data.get("components", []):
-                comp_type_str = comp_data["type"]
+                spice_type_str = comp_data["spice_type"]
                 name = comp_data["name"]
                 pos_data = comp_data["pos"]
                 rotation = comp_data.get("rotation", 0)
-                params = comp_data.get("params", {})
+                saved_params = comp_data.get("params", {})
 
                 item = None
-                # Use the component_classes map to get the correct class
-                if comp_type_str in self.component_classes:
-                    CompClass = self.component_classes[comp_type_str]
-                    # Check if it's a specific type that might need different instantiation
-                    # For now, assume all take 'name' as the first argument
-                    if CompClass:
-                         item = CompClass(name)
-                else: # Fallback for generic or if specific class not in map
-                    print(f"Warning: Component type '{comp_type_str}' not in mapped classes, trying generic.")
-                    # This case needs careful handling or ensure all types are mapped.
-                    # If GraphicComponentItem is the base for all, and component_type is set in its init:
-                    # item = self.component_classes['GraphicComponentItem'](name, component_type_str)
-                    # For now, we'll skip if not directly mapped to a specific class
-                    pass
+                CompClass = self.component_classes_map.get(spice_type_str)
 
+                if CompClass:
+                    item = CompClass(name)
+                else:
+                    QMessageBox.warning(self.main_window, "加载警告", f"加载 '{name}' ({spice_type_str}) 失败：未知元件类型 '{spice_type_str}'。")
+                    continue 
 
                 if item:
                     item.setPos(QPointF(pos_data["x"], pos_data["y"]))
                     item.setRotation(rotation)
-                    item.params.update(params) # Update params from saved data
+                    item.params.update(saved_params)
                     
-                    pins_nodes = comp_data.get("pins_nodes", {})
-                    for pin_key, node_name in pins_nodes.items():
+                    pins_nodes_data = comp_data.get("pins_nodes", {})
+                    for pin_key, node_name in pins_nodes_data.items():
                         if pin_key in item.pins:
                             item.pins[pin_key].node_name = node_name
+
+                    scene.addItem(item)
                     
-                    scene.addItem(item) # This should also add to scene.components via overridden addItem
+                    if item not in scene.components: # 确保它在列表中
+                         scene.components.append(item)
                     components_map[name] = item
             
-            WireItemClass = self.component_classes.get('WireItem')
+            WireItemClass = self.component_classes_map.get('WireItem')
             if WireItemClass:
                 for wire_data in data.get("wires", []):
                     start_comp_name = wire_data["start_comp_name"]
@@ -176,14 +176,17 @@ class FilesManager:
                             wire = WireItemClass(start_pin, end_pin)
                             path_points_data = wire_data.get("path_points", [])
                             if hasattr(wire, 'path_points') and path_points_data:
-                                wire.path_points = [QPointF(p["x"], p["y"]) for p in path_points_data]
-                                if hasattr(wire, 'update_path'):
+                                 wire.path_points = [QPointF(p["x"], p["y"]) for p in path_points_data]
+                                 if hasattr(wire, 'update_path'):
                                      wire.update_path()
-                            scene.add_wire(wire) # Assuming scene has add_wire method
+                            
+                            scene.addItem(wire)
+                            if wire not in scene.wires: # 确保它在列表中
+                                scene.wires.append(wire)
             
             self.main_window.current_file_path = filePath
             self.main_window._set_modified(False)
-            self.main_window.statusBar().showMessage(f"文件 {filePath} 已加载")
+            self.main_window.statusBar().showMessage(f"文件 {os.path.basename(filePath)} 已加载")
             print(f"成功打开文档: {filePath}")
 
         except Exception as e:

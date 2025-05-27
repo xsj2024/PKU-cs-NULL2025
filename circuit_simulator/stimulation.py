@@ -19,6 +19,7 @@ from Components.components import ComponentItem, PinItem, WireItem, CircuitScene
 from Components.ComponentItem import GraphicComponentItem
 from Components.basic import ResistorItem, CapacitorItem, InductorItem, VoltageSourceItem, GroundItem, DiodeItem
 import numpy as np
+
 class CircuitSimulator(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -337,17 +338,16 @@ class CircuitSimulator(QMainWindow):
         self.scene.components = []
         self.scene.wires = []
         self.statusBar().showMessage("场景已清除")
-        self._set_modified(True)  # 标记为已修改
+        self._set_modified(True) 
     
-    #文件新建存储打开功能待实现
     def new_file(self):
-        print("成功新建文档")
+        self.files_manager.new_file()
 
     def save_file(self):
-        print("成功保存文档")
+        self.files_manager.save_file()
 
     def open_file(self):
-        print("成功打开文档")
+        self.files_manager.open_file()
 
     def _setup_shortcuts(self):
         shortcut_callbacks = {
