@@ -1,0 +1,98 @@
+{
+    "components": [
+        {
+            "name": "R1",
+            "spice_type": "R",
+            "pos": {
+                "x": 127.0,
+                "y": -343.0
+            },
+            "rotation": 0.0,
+            "params": {
+                "resistance": 1000
+            },
+            "pins_nodes": {
+                "left": "n0",
+                "right": "n1"
+            }
+        },
+        {
+            "name": "V2",
+            "spice_type": "V",
+            "pos": {
+                "x": -17.0,
+                "y": -337.0
+            },
+            "rotation": 0.0,
+            "params": {
+                "voltage": 5.0
+            },
+            "pins_nodes": {
+                "plus": "n0",
+                "minus": "0"
+            }
+        },
+        {
+            "name": "GND3",
+            "spice_type": "GND",
+            "pos": {
+                "x": 55.0,
+                "y": -202.0
+            },
+            "rotation": 0.0,
+            "params": {
+                "name": "GND3",
+                "spice_type": "GND"
+            },
+            "pins_nodes": {
+                "gnd": "0"
+            }
+        },
+        {
+            "name": "R4",
+            "spice_type": "R",
+            "pos": {
+                "x": 205.0,
+                "y": -261.0
+            },
+            "rotation": 0.0,
+            "params": {
+                "resistance": 1000
+            },
+            "pins_nodes": {
+                "left": "n1",
+                "right": "0"
+            }
+        }
+    ],
+    "wires": [
+        {
+            "start_comp_name": "V2",
+            "start_pin_key": "plus",
+            "end_comp_name": "R1",
+            "end_pin_key": "left",
+            "path_points": []
+        },
+        {
+            "start_comp_name": "R1",
+            "start_pin_key": "right",
+            "end_comp_name": "R4",
+            "end_pin_key": "left",
+            "path_points": []
+        },
+        {
+            "start_comp_name": "R4",
+            "start_pin_key": "right",
+            "end_comp_name": "GND3",
+            "end_pin_key": "gnd",
+            "path_points": []
+        },
+        {
+            "start_comp_name": "GND3",
+            "start_pin_key": "gnd",
+            "end_comp_name": "V2",
+            "end_pin_key": "minus",
+            "path_points": []
+        }
+    ]
+}

@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QGraphicsLineItem, QGraphicsPathItem, QGraphicsSimpl
 
 class PinItem(QGraphicsEllipseItem):
     def __init__(self, parent_component, pin_name, pos_x, pos_y):
-        super().__init__(0, 0, 6, 6, parent=parent_component)  # 引脚为小圆点
+        super().__init__(-4, -4, 8, 8, parent=parent_component)  # 引脚为小圆点
         self.setPos(pos_x, pos_y)
         self.setBrush(QBrush(QColor(100, 100, 255)))  # 蓝色引脚
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
