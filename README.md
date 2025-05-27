@@ -56,6 +56,15 @@
 
 文件打开、保存、创建等功能
 
+## command_manager.py
+
+统一管理模拟器的操作，操作包括：
+添加元件
+删除元件
+添加连线
+删除连线
+清空场景
+
 ## parameter_editor.py：
 
 定义了一个编辑元件参数的侧面窗口ParameterEditorDock(QDockWidget)
