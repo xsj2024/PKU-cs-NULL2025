@@ -46,7 +46,7 @@ class FilesManager:
             return self._perform_save(filePath)
         return False
 
-    def _maybe_save(self):
+    def _maybe_save(self): # 询问用户是否要保存
         if not self.main_window.is_modified:
             return True
         ret = QMessageBox.warning(
@@ -58,7 +58,7 @@ class FilesManager:
             return self.save_file()
         elif ret == QMessageBox.Cancel:
             return False
-        return True
+        return True # 不保存并继续当前的操作
 
     def _perform_save(self, filePath):
         try:
@@ -121,8 +121,8 @@ class FilesManager:
             with open(filePath, 'r', encoding='utf-8') as f:
                 data = json.load(f)
 
+            self.main_window._clear_scene()
             scene = self.main_window.scene
-            scene.clear()
             
             components_map = {} 
 
