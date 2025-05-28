@@ -109,6 +109,22 @@
             "pins_nodes": {
                 "gnd": "0"
             }
+        },
+        {
+            "name": "R7",
+            "spice_type": "R",
+            "pos": {
+                "x": 136.0,
+                "y": -327.0
+            },
+            "rotation": 0.0,
+            "params": {
+                "resistance": 1000
+            },
+            "pins_nodes": {
+                "left": null,
+                "right": null
+            }
         }
     ],
     "wires": [
