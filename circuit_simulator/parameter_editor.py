@@ -160,11 +160,18 @@ class ParameterEditorDock(QDockWidget):
         # 这里可以添加示波器的特定参数编辑
         # 例如，时间范围、触发电平等
         time_range_edit = QDoubleSpinBox()
-        time_range_edit.setRange(0.1, 1000)
+        time_range_edit.setRange(0, 1000)
         time_range_edit.setValue(component.params["time_range"])
-        time_range_edit.valueChanged.connect(lambda v: component.set_param("time_range", v))
+        time_range_edit.valueChanged.connect(lambda v: component.set_param("time_range", v, force_update=True))
+
+        mode_combo = QComboBox()
+        mode_combo.addItems(["CH1", "CH2", "Both", "XY"])
+        mode_combo.setCurrentText(component.params["mode"])
+        mode_combo.currentTextChanged.connect(
+            lambda mode: component.set_param("mode", mode, force_update=True))
 
         self.layout.addRow("时间范围 (s)", time_range_edit)
+        self.layout.addRow("显示模式", mode_combo)
         btn = QPushButton("显示波形窗口")
         btn.clicked.connect(component.show_window)
         self.layout.addRow(btn)

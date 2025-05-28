@@ -1,0 +1,164 @@
+{
+    "components": [
+        {
+            "name": "AC1",
+            "spice_type": "V_AC",
+            "pos": {
+                "x": -226.0,
+                "y": -128.0
+            },
+            "rotation": 0.0,
+            "params": {
+                "name": "AC1",
+                "spice_type": "V_AC",
+                "waveform": "SQUARE",
+                "amplitude": 5.0,
+                "frequency": 50,
+                "phase": 0,
+                "dc_offset": 0,
+                "duty_cycle": 50,
+                "rise_time": 1e-06,
+                "fall_time": 1e-06
+            },
+            "pins_nodes": {
+                "plus": "0",
+                "minus": "n0"
+            }
+        },
+        {
+            "name": "C2",
+            "spice_type": "C",
+            "pos": {
+                "x": 179.0,
+                "y": -142.0
+            },
+            "rotation": 0.0,
+            "params": {
+                "capacitance": 22.0
+            },
+            "pins_nodes": {
+                "left": "n2",
+                "right": "0"
+            }
+        },
+        {
+            "name": "L3",
+            "spice_type": "L",
+            "pos": {
+                "x": 15.0,
+                "y": -129.0
+            },
+            "rotation": 0.0,
+            "params": {
+                "inductance": 10.0
+            },
+            "pins_nodes": {
+                "left": "n1",
+                "right": "n2"
+            }
+        },
+        {
+            "name": "OSC4",
+            "spice_type": "OSC",
+            "pos": {
+                "x": -55.0,
+                "y": -236.0
+            },
+            "rotation": 0.0,
+            "params": {
+                "time_range": 0.02,
+                "show_waveform": true,
+                "ch1_scale": 1.0,
+                "ch2_scale": 1.0,
+                "mode": "Both"
+            },
+            "pins_nodes": {
+                "ch1": "n0",
+                "ch2": "n1"
+            }
+        },
+        {
+            "name": "R5",
+            "spice_type": "R",
+            "pos": {
+                "x": -115.0,
+                "y": -140.0
+            },
+            "rotation": 0.0,
+            "params": {
+                "resistance": 10.0
+            },
+            "pins_nodes": {
+                "left": "n0",
+                "right": "n1"
+            }
+        },
+        {
+            "name": "GND6",
+            "spice_type": "GND",
+            "pos": {
+                "x": -64.0,
+                "y": 43.0
+            },
+            "rotation": 0.0,
+            "params": {
+                "name": "GND6",
+                "spice_type": "GND"
+            },
+            "pins_nodes": {
+                "gnd": "0"
+            }
+        }
+    ],
+    "wires": [
+        {
+            "start_comp_name": "AC1",
+            "start_pin_key": "minus",
+            "end_comp_name": "R5",
+            "end_pin_key": "left",
+            "path_points": []
+        },
+        {
+            "start_comp_name": "R5",
+            "start_pin_key": "right",
+            "end_comp_name": "L3",
+            "end_pin_key": "left",
+            "path_points": []
+        },
+        {
+            "start_comp_name": "L3",
+            "start_pin_key": "right",
+            "end_comp_name": "C2",
+            "end_pin_key": "left",
+            "path_points": []
+        },
+        {
+            "start_comp_name": "C2",
+            "start_pin_key": "right",
+            "end_comp_name": "GND6",
+            "end_pin_key": "gnd",
+            "path_points": []
+        },
+        {
+            "start_comp_name": "GND6",
+            "start_pin_key": "gnd",
+            "end_comp_name": "AC1",
+            "end_pin_key": "plus",
+            "path_points": []
+        },
+        {
+            "start_comp_name": "R5",
+            "start_pin_key": "left",
+            "end_comp_name": "OSC4",
+            "end_pin_key": "ch1",
+            "path_points": []
+        },
+        {
+            "start_comp_name": "OSC4",
+            "start_pin_key": "ch2",
+            "end_comp_name": "R5",
+            "end_pin_key": "right",
+            "path_points": []
+        }
+    ]
+}
