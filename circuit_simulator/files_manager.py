@@ -8,15 +8,15 @@ class FilesManager:
         self.main_window = main_window
         self.component_classes_map = main_window.get_component_classes_map()
 
-    def new_file(self):
+    def new_file(self): # 新建文件
         if self._maybe_save():
             self.main_window._clear_scene() 
             self.main_window.current_file_path = None
-            self.main_window._set_modified(False)
+            self.main_window._set_saved(True)
             self.main_window.statusBar().showMessage("已创建新文档")
             print("成功新建文档")
 
-    def open_file(self):
+    def open_file(self): # 打开已有文件
         if self._maybe_save():
             filePath, _ = QFileDialog.getOpenFileName(
                 self.main_window, "打开电路文件", "",
@@ -25,13 +25,13 @@ class FilesManager:
             if filePath:
                 self._perform_load(filePath)
 
-    def save_file(self):
+    def save_file(self): # 保存文件
         if self.main_window.current_file_path:
             return self._perform_save(self.main_window.current_file_path)
         else:
             return self.save_file_as()
 
-    def save_file_as(self):
+    def save_file_as(self): # 另存为
         suggested_filename = os.path.basename(self.main_window.current_file_path) if self.main_window.current_file_path else "未命名.circuit"
         save_dir = os.path.dirname(self.main_window.current_file_path) if self.main_window.current_file_path else ""
 
@@ -47,7 +47,7 @@ class FilesManager:
         return False
 
     def _maybe_save(self): # 询问用户是否要保存
-        if not self.main_window.is_modified:
+        if self.main_window.saved:
             return True
         ret = QMessageBox.warning(
             self.main_window, "电路模拟器",
@@ -107,7 +107,7 @@ class FilesManager:
                 json.dump(data, f, indent=4)
             
             self.main_window.current_file_path = filePath
-            self.main_window._set_modified(False)
+            self.main_window._set_saved(True)
             self.main_window.statusBar().showMessage(f"文件已保存到 {os.path.basename(filePath)}")
             print(f"成功保存文档: {filePath}")
             return True
@@ -185,7 +185,7 @@ class FilesManager:
                                 scene.wires.append(wire)
             
             self.main_window.current_file_path = filePath
-            self.main_window._set_modified(False)
+            self.main_window._set_saved(True)
             self.main_window.statusBar().showMessage(f"文件 {os.path.basename(filePath)} 已加载")
             print(f"成功打开文档: {filePath}")
 

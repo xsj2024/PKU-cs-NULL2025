@@ -95,7 +95,7 @@ class CircuitSimulator(QMainWindow):
 
         # 文件管理初始化
         self.current_file_path = None
-        self.is_modified = False
+        self.saved = True
         self.files_manager = FilesManager(self)
 
         # 参数编辑器初始化
@@ -121,18 +121,12 @@ class CircuitSimulator(QMainWindow):
         # 连接场景选择变化信号
         self.scene.selectionChanged.connect(self._on_selection_changed)
 
-        # 连接场景修改信号 关于文件存储
-        self.scene.changed.connect(self._on_scene_changed)
-
         # 在状态栏中增加一个悬停引脚电压的显示
         self.voltage_label = QLabel("悬停引脚查看电压")
         # 处在于状态栏的右侧
         self.voltage_label.setAlignment(Qt.AlignRight)
         self.statusBar().addPermanentWidget(self.voltage_label)
 
-    def _on_scene_changed(self):
-        """场景发生变化时标记为已修改"""
-        self._set_modified(True)
 
     def get_component_classes_map(self):
         '''
@@ -152,13 +146,12 @@ class CircuitSimulator(QMainWindow):
             "GraphicComponentItem": GraphicComponentItem
         }
 
-    def _set_modified(self, modified):
-        if self.is_modified == modified and self.windowTitle().startswith("*") == modified :
-             return
-        self.is_modified = modified
+    def _set_saved(self, saved):
+        self.saved = saved
         self._update_window_title()
 
-    def _update_window_title(self):
+    # 更新窗口名称
+    def _update_window_title(self): 
         title = "PyQt + PySpice 电路模拟器"
         if self.current_file_path:
             fileName = os.path.basename(self.current_file_path)
@@ -166,16 +159,15 @@ class CircuitSimulator(QMainWindow):
         else:
             title = f"未命名 - {title}"
         
-        if self.is_modified:
+        if not self.saved:
             title = "*" + title
-        
         self.setWindowTitle(title)
 
     def new_file(self):
         self.files_manager.new_file()
 
     def save_file(self):
-        return self.files_manager.save_file()
+        self.files_manager.save_file()
 
     def open_file(self):
         self.files_manager.open_file()
@@ -406,6 +398,7 @@ class CircuitSimulator(QMainWindow):
 
         self.scene.addItem(item)
         self.scene.components.append(item)
+        self._set_saved(False)
         self.statusBar().showMessage(f"已添加 {item.name}")
 
     def _run_spice_simulation(self):
@@ -502,16 +495,7 @@ class CircuitSimulator(QMainWindow):
         self.scene.components = []
         self.scene.wires = []
         self.statusBar().showMessage("场景已清除")
-        self._set_modified(True) 
-    
-    def new_file(self):
-        self.files_manager.new_file()
-
-    def save_file(self):
-        self.files_manager.save_file()
-
-    def open_file(self):
-        self.files_manager.open_file()
+        self._set_saved(False)
 
     def _setup_shortcuts(self):
         shortcut_callbacks = {
