@@ -174,14 +174,18 @@ class CircuitSimulator(QMainWindow):
 
     def new_file(self):
         self.files_manager.new_file()
+        self.command_manager.clear_history()
 
     def save_file(self):
         self.files_manager.save_file()
+        self.command_manager.clear_history()
 
     def open_file(self):
         self.files_manager.open_file()
+        self.command_manager.clear_history()
 
     def save_file_as(self):
+        self.command_manager.clear_history()
         return self.files_manager.save_file_as()
 
     def _on_selection_changed(self):

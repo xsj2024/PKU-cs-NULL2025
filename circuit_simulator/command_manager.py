@@ -109,8 +109,8 @@ class MoveComponentCommand(Command):
         scene = self.component_item.scene()
         if scene and hasattr(scene, 'wires'):
             for wire in scene.wires:
-                if (wire.start_pin and wire.start_pin.parent() == self.component_item) or \
-                   (wire.end_pin and wire.end_pin.parent() == self.component_item):
+                if (wire.start_pin and wire.start_pin.parent_component == self.component_item) or \
+                   (wire.end_pin and wire.end_pin.parent_component == self.component_item):
                     if hasattr(wire, 'update_path'):
                         wire.update_path()
     
