@@ -65,14 +65,23 @@ class CircuitSimulator(QMainWindow):
         self.statusBar().showMessage("拖放元件并连线，点击仿真运行SPICE")
         #为状态栏提供一个对比背景和浅色文字
         self.statusBar().setStyleSheet("""
-            QStatusBar {
-                background: rgba(45, 45, 45, 0.5); /* 状态栏半透明深色背景 */
-                color: white; /* 状态栏文字白色 */
-                border-top: 1px solid rgba(80, 80, 80, 0.4); /* 顶部边框线 */
-            }
-            QStatusBar::item {
-                border: none;
-            }
+    QStatusBar {
+        background: #2D2D2D;  /* 纯深灰色 */
+        color: #FFFFFF;      /* 白色文字 */
+        border-top: 1px solid #505050;
+        font-family: "Segoe UI";
+        font-size: 20px;
+    }
+    QStatusBar::item {
+        border: none;
+        padding: 0 5px;
+    }
+    QLabel {
+        color: #FFFFFF;
+        font-family: "Segoe UI";
+        font-size: 20px;
+    }
+
         """)
 
         # 快捷键初始化
@@ -111,22 +120,25 @@ class CircuitSimulator(QMainWindow):
         self.param_editor = ParameterEditorDock(self)
         self.addDockWidget(Qt.RightDockWidgetArea, self.param_editor)
         self.param_editor.setStyleSheet("""
-            QDockWidget {
-                background: transparent; /* Dock整体背景透明 */
-                border: 2px solid rgba(80, 80, 80, 0.9); /* 可选：Dock的整体边框 */
-                /* color: white; */ /* 直接在QDockWidget上设置color可能不影响标题 */
-            }
-            QDockWidget::title { /* 针对标题栏 */
-                text-align: left; /* 标题文本左对齐 */
-                background: rgba(50, 50, 50, 0.5); /* 标题栏半透明深色背景 */
-                padding: 6px; /* 标题栏内边距 */
-                color: white; /* 标题文字白色 */
-                border: none; /* 可以去掉标题栏自身的边框，如果QDockWidget已有边框 */
-                /* border-bottom: 1px solid rgba(150,150,150,0.5); */ /* 可选：标题栏下的分隔线 */
-            }
+    QDockWidget {
+        background: rgba(45, 45, 45, 0.4);  /* 70%不透明深灰 */
+        border: 2px solid rgba(80, 80, 80, 0.9);
+        border-radius: 8px;
+    }
+    QDockWidget::title {
+        text-align: left;
+        background: rgba(60, 60, 60, 0.7);
+        padding: 6px;
+        color: white;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+    }
+    QDockWidget > QWidget {  /* 内容区域 */
+        background: rgba(50, 50, 50, 0.6);
+        border-radius: 8px;
+    }
+
         """)
-        if self.param_editor.widget():
-            self.param_editor.widget().setStyleSheet("background: transparent;")
         # 连接场景选择变化信号
         self.scene.selectionChanged.connect(self._on_selection_changed)
 
@@ -135,6 +147,14 @@ class CircuitSimulator(QMainWindow):
         # 处在于状态栏的右侧
         self.voltage_label.setAlignment(Qt.AlignRight)
         self.statusBar().addPermanentWidget(self.voltage_label)
+        self.voltage_label.setStyleSheet("""
+    QLabel {
+        color: #FFFFFF;
+        font-family: "Segoe UI";
+        font-size: 20px;
+        padding-right: 10px;
+    }
+""")
 
 
     def get_component_classes_map(self):
@@ -205,34 +225,52 @@ class CircuitSimulator(QMainWindow):
         # 设置QDockWidget本身背景透明
         dock.setStyleSheet("QDockWidget { background: transparent; border: 1px solid gray; }")
 
+        # 希望不能被拖动或者改变大小或者关闭
+        dock.setFeatures(QDockWidget.NoDockWidgetFeatures)
+        dock.setFloating(False)  # 禁止浮动
+
         # 使用选项卡分类元件
         tab_widget = QTabWidget()
         tab_widget.setStyleSheet("""
-            QTabWidget::pane { /* 标签页内容区域的框架 */
-                border: 1px solid rgba(200, 200, 200, 0.5); /* 半透明边框 */
-                background: transparent; /* 使内容区域透明 */
-                top: -1px; /* 轻微调整以更好地与标签栏对齐 */
-            }
-            QTabBar::tab { /* 标签本身的样式 */
-                background: rgba(80, 80, 80, 0.5); /* 半透明深色背景 */
-                border: 1px solid rgba(150, 150, 150, 0.6);
-                border-bottom-color: transparent; /* 使选中的标签底部不显示边框，与pane融合 */
-                border-top-left-radius: 4px;
-                border-top-right-radius: 4px;
-                min-width: 8ex;
-                padding: 5px 10px; /* 调整内边距 */
-                color: white; /* 白色文字 */
-                font-weight: bold;
-            }
-            QTabBar::tab:selected {
-                background: rgba(120, 120, 120, 0.6); /* 选中时更亮一些的半透明背景 */
-                border-color: rgba(200, 200, 200, 0.7);
-                border-bottom-color: transparent; /* 确保与pane的透明背景融合 */
-            }
-            QTabBar::tab:!selected:hover {
-                background: rgba(100, 100, 100, 0.5); /* 鼠标悬停在未选中标签上 */
-            }
-        """)
+    QDockWidget {
+        background: rgba(45, 45, 45, 0.4);
+        border: 2px solid rgba(80, 80, 80, 0.9);
+        border-radius: 8px;
+    }
+    QDockWidget::title {
+        text-align: left;
+        background: rgba(60, 60, 60, 0.7);
+        padding: 6px;
+        color: white;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+    }
+    QTabWidget::pane {
+        border: none;
+        background: rgba(50, 50, 50, 0.6);
+        border-radius: 8px;
+    }
+    QTabBar::tab {
+        background: rgba(80, 80, 80, 0.6);
+        color: white;
+        padding: 8px;
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+    }
+    QTabBar::tab:selected {
+        background: rgba(120, 120, 120, 0.7);
+    }
+    QPushButton {
+        background: rgba(70, 70, 70, 0.7);
+        color: white;
+        border: 1px solid rgba(100, 100, 100, 0.8);
+        border-radius: 4px;
+        padding: 8px;
+    }
+    QPushButton:hover {
+        background: rgba(90, 90, 90, 0.8);
+    }
+""")
         # 基础元件选项卡
         basic_tab = QWidget()
         basic_tab.setStyleSheet("background: transparent;")

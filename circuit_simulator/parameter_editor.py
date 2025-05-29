@@ -16,6 +16,12 @@ class ParameterEditorDock(QDockWidget):
         # 当前编辑的元件
         self.current_item = None
 
+        # 希望不能被拖动或者改变大小或者关闭
+        self.setFeatures(QDockWidget.NoDockWidgetFeatures)
+        self.setFloating(False)  # 禁止浮动
+        self.setMinimumWidth(300)  # 设置最小宽度
+
+
     def clear(self):
         """清空当前编辑界面"""
         for i in reversed(range(self.layout.count())): 
