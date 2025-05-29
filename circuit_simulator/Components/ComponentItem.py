@@ -110,3 +110,32 @@ class GraphicComponentItem(QGraphicsPixmapItem):
                 setattr(self, key, value)
             else:
                 print(f"Warning: {key} is not a valid parameter for {self.spice_type}.")
+
+    # 以下处理鼠标移动
+    def mousePressEvent(self, event):
+        """鼠标按下事件 - 开始移动"""
+        if event.button() == Qt.LeftButton:
+            scene = self.scene()
+            if scene and hasattr(scene, 'main_window') and scene.main_window:
+                command_manager = scene.main_window.command_manager
+                command_manager.start_move_command(self, self.pos())
+        super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        """鼠标释放事件 - 完成移动"""
+        if event.button() == Qt.LeftButton:
+            scene = self.scene()
+            if scene and hasattr(scene, 'main_window') and scene.main_window:
+                command_manager = scene.main_window.command_manager
+                command_manager.finish_move_command(self, self.pos())
+        super().mouseReleaseEvent(event)
+
+    def itemChange(self, change, value):
+        """元件位置改变时更新连线"""
+        if change == QGraphicsItem.ItemPositionHasChanged:
+            # 更新所有连接到此元件的连线
+            for pin in self.pins.values():
+                for wire in pin.connected_wires:
+                    if hasattr(wire, 'update_path'):
+                        wire.update_path()
+        return super().itemChange(change, value)

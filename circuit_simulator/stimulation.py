@@ -13,6 +13,11 @@ from PyQt5.QtGui import QColor, QPainter, QBrush, QTransform,QKeySequence, QPain
 from PyQt5.QtWidgets import QShortcut, QLabel
 from shortcuts_manager import shortcutManager,shortcutSettingDialog
 from files_manager import FilesManager
+from command_manager import (
+    CommandManager, AddComponentCommand, RemoveComponentCommand, 
+    MoveComponentCommand, AddWireCommand, RemoveWireCommand, ClearSceneCommand
+)
+from PyQt5.QtGui import QKeySequence
 from Components.AC_source import ACSourceItem, OscilloscopeItem
 from parameter_editor import ParameterEditorDock
 from Components.components import PinItem, WireItem, CircuitScene
@@ -97,6 +102,10 @@ class CircuitSimulator(QMainWindow):
         self.current_file_path = None
         self.saved = True
         self.files_manager = FilesManager(self)
+
+        # 命令管理初始化
+        self.command_manager = CommandManager()
+        self.command_manager.set_main_window(self)
 
         # 参数编辑器初始化
         self.param_editor = ParameterEditorDock(self)
@@ -348,6 +357,30 @@ class CircuitSimulator(QMainWindow):
         action_save_as_file.triggered.connect(self.save_file_as) # 连接到已有的 save_file_as 方法
         file_menu.addAction(action_save_as_file)
 
+        # Start 从这里添加了一部分功能 可以更改
+        # 编辑菜单
+        edit_menu = main_menu_bar.addMenu("编辑(&E)")
+        # 撤销
+        action_undo = QAction("撤销", self)
+        action_undo.setShortcut(QKeySequence.Undo)  # Ctrl+Z
+        action_undo.setStatusTip("撤销上一个操作")
+        action_undo.triggered.connect(self.undo_command)
+        edit_menu.addAction(action_undo)
+        # 重做
+        action_redo = QAction("重做", self)
+        action_redo.setShortcut(QKeySequence.Redo)  # Ctrl+Y
+        action_redo.setStatusTip("重做下一个操作")
+        action_redo.triggered.connect(self.redo_command)
+        edit_menu.addAction(action_redo)
+        edit_menu.addSeparator()
+        # 删除选中元件
+        action_delete = QAction("删除选中", self)
+        action_delete.setShortcut(QKeySequence.Delete)  # Delete键
+        action_delete.setStatusTip("删除选中的元件或连线")
+        action_delete.triggered.connect(self.delete_selected)
+        edit_menu.addAction(action_delete)
+        #End
+
         # 设置菜单
         settings_menu = main_menu_bar.addMenu("设置(&E)") # alt + e 打开设置
         # 背景设置
@@ -396,10 +429,11 @@ class CircuitSimulator(QMainWindow):
         elif component_type == "OSC" or component_type == "示波器":
             item = OscilloscopeItem(f"OSC{len(self.scene.components) + 1}")
 
-        self.scene.addItem(item)
-        self.scene.components.append(item)
-        self._set_saved(False)
+        # 使用命令管理器添加元件
+        command = AddComponentCommand(self.scene, item)
+        self.command_manager.execute_command(command)
         self.statusBar().showMessage(f"已添加 {item.name}")
+        self._set_saved(False)
 
     def _run_spice_simulation(self):
         """生成SPICE网表并调用PySpice"""
@@ -489,9 +523,8 @@ class CircuitSimulator(QMainWindow):
 
     def _clear_scene(self):
         """清空场景"""
-        self.scene.clear()
-        self.scene.components = []
-        self.scene.wires = []
+        command = ClearSceneCommand(self.scene)
+        self.command_manager.execute_command(command)
         self.statusBar().showMessage("场景已清除")
         self._set_saved(False)
 
@@ -507,7 +540,10 @@ class CircuitSimulator(QMainWindow):
             "run_spice_simulation": self._run_spice_simulation,
             "clear_scene": self._clear_scene,
             "show_shortcut_settings":self.show_shortcut_settings,
-            "change_background":self.open_background_dialog
+            "change_background":self.open_background_dialog,
+            "undo": self.undo_command,  # 新增
+            "redo": self.redo_command,  # 新增
+            "delete_selected": self.delete_selected  # 新增
         }
         self.shortcut_manager.register_all_shortcuts(shortcut_callbacks)
 
@@ -639,3 +675,54 @@ class CircuitSimulator(QMainWindow):
             self.hovered_pin.set_hovered(False)
             self.hovered_pin = None
         self.voltage_label.setText("悬停引脚查看电压")
+
+    def undo_command(self):
+        """撤销命令"""
+        if self.command_manager.undo():
+            desc = self.command_manager.get_undo_description()
+            self.statusBar().showMessage(f"已撤销: {desc if desc else '操作'}")
+        else:
+            self.statusBar().showMessage("没有可撤销的操作")
+
+    def redo_command(self):
+        """重做命令"""
+        if self.command_manager.redo():
+            desc = self.command_manager.get_redo_description()
+            self.statusBar().showMessage(f"已重做: {desc if desc else '操作'}")
+        else:
+            self.statusBar().showMessage("没有可重做的操作")
+
+    def delete_selected(self):
+        """删除选中的元件或连线"""
+        selected_items = self.scene.selectedItems()
+        if not selected_items:
+            self.statusBar().showMessage("没有选中的项目")
+            return
+        
+        deleted_count = 0
+        for item in selected_items:
+            # 检查是否是 GraphicComponentItem
+            if hasattr(item, 'spice_type') and hasattr(item, 'name'):  # 元件
+                command = RemoveComponentCommand(self.scene, item)
+                self.command_manager.execute_command(command)
+                deleted_count += 1
+            # 检查是否是 WireItem
+            elif hasattr(item, 'start_pin') and hasattr(item, 'end_pin'):  # 连线
+                command = RemoveWireCommand(self.scene, item)
+                self.command_manager.execute_command(command)
+                deleted_count += 1
+        
+        if deleted_count > 0:
+            self.statusBar().showMessage(f"已删除 {deleted_count} 个项目")
+        else:
+            self.statusBar().showMessage("没有可删除的项目")
+
+    def add_wire_with_command(self, wire_item):
+        """使用命令管理器添加连线"""
+        command = AddWireCommand(self.scene, wire_item)
+        self.command_manager.execute_command(command)
+
+    def remove_wire_with_command(self, wire_item):
+        """使用命令管理器删除连线"""
+        command = RemoveWireCommand(self.scene, wire_item)
+        self.command_manager.execute_command(command)

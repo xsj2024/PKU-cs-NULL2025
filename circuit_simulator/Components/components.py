@@ -114,12 +114,33 @@ class CircuitScene(QGraphicsScene):
 
     def mouseReleaseEvent(self, event):
         if hasattr(self, 'temp_start_pin'):
-            end_pin = self._find_end_pin(event.scenePos())
-            if end_pin:
+            # 获取所有在释放位置的项（而不仅是顶层项）
+            items = self.items(event.scenePos())
+            end_pin = None
+            for item in items:
+                if isinstance(item, PinItem) and item != self.temp_start_pin:
+                    end_pin = item
+                    break
+        
+            if end_pin:  # 找到有效引脚
+                print("Connecting wires")
                 wire = WireItem(self.temp_start_pin, end_pin)
-                self._finalize_wire(wire)
-            self._cleanup_temp_items()
-        return super().mouseReleaseEvent(event)
+                # 使用命令管理器添加连线
+                if self.main_window and hasattr(self.main_window, 'command_manager'):
+                    self.main_window.add_wire_with_command(wire)
+                else:
+                    # 备用方案：直接添加
+                    self.addItem(wire)
+                    self.wires.append(wire)
+            else:
+                print("No valid end pin found")
+        
+            # 清理临时项
+            if hasattr(self, 'temp_wire'):
+                self.removeItem(self.temp_wire)
+                del self.temp_wire
+            del self.temp_start_pin
+        super().mouseReleaseEvent(event)
 
     def pin_hover(self, pin, is_hovered):
         """处理引脚悬停事件"""
