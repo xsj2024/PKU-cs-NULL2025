@@ -56,8 +56,8 @@ class RemoveComponentCommand(Command):
             # 先保存并删除与该元件相连的所有连线
             self.connected_wires = []
             for wire in self.scene.wires[:]:  # 使用切片避免修改时出错
-                if (wire.start_pin and wire.start_pin.parent() == self.component_item) or \
-                   (wire.end_pin and wire.end_pin.parent() == self.component_item):
+                if (wire.start_pin and wire.start_pin.parent_component == self.component_item) or \
+                   (wire.end_pin and wire.end_pin.parent_component == self.component_item):
                     self.connected_wires.append(wire)
                     self.scene.removeItem(wire)
                     if wire in self.scene.wires:
