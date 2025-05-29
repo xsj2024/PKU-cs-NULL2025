@@ -15,7 +15,7 @@ from shortcuts_manager import shortcutManager,shortcutSettingDialog
 from files_manager import FilesManager
 from Components.AC_source import ACSourceItem, OscilloscopeItem
 from parameter_editor import ParameterEditorDock
-from Components.components import ComponentItem, PinItem, WireItem, CircuitScene
+from Components.components import PinItem, WireItem, CircuitScene
 from Components.ComponentItem import GraphicComponentItem
 from Components.basic import ResistorItem, CapacitorItem, InductorItem, VoltageSourceItem, GroundItem, DiodeItem
 import numpy as np
@@ -404,8 +404,6 @@ class CircuitSimulator(QMainWindow):
     def _run_spice_simulation(self):
         """生成SPICE网表并调用PySpice"""
         try:
-            from PySpice.Spice.Netlist import Circuit
-            
             # 直接调用generate_spice_netlist函数
             circuit, has_ac_source = generate_spice_netlist(self.scene)
 

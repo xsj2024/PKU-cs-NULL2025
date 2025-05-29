@@ -2,6 +2,11 @@ from PyQt5.QtWidgets import QGraphicsPixmapItem, QGraphicsScene, QGraphicsView, 
 from Components.components import PinItem
 from PyQt5.QtCore import Qt, QRectF
 from PyQt5.QtGui import QPen, QPixmap
+from PyQt5.QtCore import pyqtSignal, QObject
+
+class ComponentProxy(QObject):
+    """代理类，用于处理引脚的信号和槽"""
+    position_changed = pyqtSignal()  # 位置变化信号
 
 class GraphicComponentItem(QGraphicsPixmapItem):
     def __init__(self, name, spice_type, icon_path=None):
@@ -25,6 +30,11 @@ class GraphicComponentItem(QGraphicsPixmapItem):
         self.setFlag(QGraphicsItem.ItemIsMovable, True)
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
         self.setAcceptHoverEvents(True)
+
+        self.proxy = ComponentProxy()  # 创建代理类实例
+        self.positionChanged = self.proxy.position_changed  # 位置变化信号
+
+        self.posChanged = self.proxy.position_changed  # 位置变化信号
 
     def _default_icon_path(self):
         """根据类型返回默认图标路径"""
