@@ -29,6 +29,10 @@ from background import BackgroundDialog
 from PyQt5.QtCore import QFileInfo #将字符串路径和文件系统的文件关联起来用
 import json #用于JSON文件操作
 from PyQt5.QtCore import QStandardPaths, QDir #用于确保目录存在
+#新增：
+from terminal import TerminalWidget,SignallingStdout
+from PyQt5.QtWidgets import QSplitter
+from ai_manager import AiConfigDialog
 
 class CircuitSimulator(QMainWindow):
     def __init__(self):
@@ -38,6 +42,29 @@ class CircuitSimulator(QMainWindow):
         
         # 创建左侧元件停靠窗口
         self.component_dock = self._create_component_dock()
+        # 参数编辑器初始化
+        self.param_editor = ParameterEditorDock(self)
+        self.addDockWidget(Qt.RightDockWidgetArea, self.param_editor)
+        self.param_editor.setStyleSheet("""
+    QDockWidget {
+        background: rgba(45, 45, 45, 0.4);  /* 70%不透明深灰 */
+        border: 2px solid rgba(80, 80, 80, 0.9);
+        border-radius: 8px;
+    }
+    QDockWidget::title {
+        text-align: left;
+        background: rgba(60, 60, 60, 0.7);
+        padding: 6px;
+        color: white;
+        border-top-left-radius: 8px;
+        border-top-right-radius: 8px;
+    }
+    QDockWidget > QWidget {  /* 内容区域 */
+        background: rgba(50, 50, 50, 0.6);
+        border-radius: 8px;
+    }
+
+        """)
 
         # 初始化场景和视图
         self.scene = CircuitScene(self)
@@ -50,11 +77,34 @@ class CircuitSimulator(QMainWindow):
         self.view.setStyleSheet("background: transparent; border: none;")
         self.view.viewport().setStyleSheet("background: transparent;")
         
+        # 创建终端控件
+        self.terminal = TerminalWidget(self)
+        self.terminal.setStyleSheet("""
+            QPlainTextEdit {
+                background: rgba(45, 45, 45, 0.4);  /* 70%不透明深灰 */
+                color: #A9B7C6; /* 浅灰色文本 */
+                font-family: "Consolas", "Courier New", monospace;
+                font-size: 10pt;
+                border: 1px solid #3C3C3C;
+            }
+        """)
+        self.terminal.setMinimumHeight(100)
+        
         # 主布局
         central_widget = QWidget()
         central_widget.setStyleSheet("background: transparent;") #主窗口设置透明
+        
+        self.splitter = QSplitter(Qt.Vertical, central_widget) # 创建一个垂直方向的 QSplitter
+        self.splitter.addWidget(self.view)
+        self.splitter.addWidget(self.terminal)
+        initial_view_height = int(self.height() * 0.75) if self.height() > 400 else 600
+        initial_terminal_height = int(self.height() * 0.25) if self.height() > 400 else 200
+        self.splitter.setSizes([initial_view_height, initial_terminal_height])
+
         layout = QVBoxLayout()
-        layout.addWidget(self.view)
+        layout.setContentsMargins(0, 0, 0, 0) #无外边距
+        layout.setSpacing(0) #试图和终端无边距
+        layout.addWidget(self.splitter)
         central_widget.setLayout(layout)
         self.setCentralWidget(central_widget)
         
@@ -66,7 +116,7 @@ class CircuitSimulator(QMainWindow):
         #为状态栏提供一个对比背景和浅色文字
         self.statusBar().setStyleSheet("""
     QStatusBar {
-        background: #2D2D2D;  /* 纯深灰色 */
+        background: rgba(45, 45, 45, 0.4);  /* 70%不透明深灰 */
         color: #FFFFFF;      /* 白色文字 */
         border-top: 1px solid #505050;
         font-family: "Segoe UI";
@@ -83,6 +133,17 @@ class CircuitSimulator(QMainWindow):
     }
 
         """)
+
+        # 重定向
+        self.stdout_redirector = SignallingStdout(self)
+        self.stdout_redirector.text_written.connect(self.terminal.append_text)
+        sys.stdout = self.stdout_redirector
+        self.stderr_redirector = SignallingStdout(self)
+        self.stderr_redirector.text_written.connect(self.terminal.append_text) # 可以连接到同一个槽
+        sys.stderr = self.stderr_redirector
+
+        # 显示初始提示符
+        self.terminal.show_prompt()
 
         # 快捷键初始化
         self.shortcut_manager = shortcutManager(self)
@@ -107,6 +168,9 @@ class CircuitSimulator(QMainWindow):
         self.resizeEvent_orig = self.resizeEvent
         self.resizeEvent = self._custom_resize_event
 
+        #ai_Info地址
+        self.ai_config_file_path = os.path.join(base_dir, "ai_Info.json")
+
         # 文件管理初始化
         self.current_file_path = None
         self.saved = True
@@ -116,29 +180,6 @@ class CircuitSimulator(QMainWindow):
         self.command_manager = CommandManager()
         self.command_manager.set_main_window(self)
 
-        # 参数编辑器初始化
-        self.param_editor = ParameterEditorDock(self)
-        self.addDockWidget(Qt.RightDockWidgetArea, self.param_editor)
-        self.param_editor.setStyleSheet("""
-    QDockWidget {
-        background: rgba(45, 45, 45, 0.4);  /* 70%不透明深灰 */
-        border: 2px solid rgba(80, 80, 80, 0.9);
-        border-radius: 8px;
-    }
-    QDockWidget::title {
-        text-align: left;
-        background: rgba(60, 60, 60, 0.7);
-        padding: 6px;
-        color: white;
-        border-top-left-radius: 8px;
-        border-top-right-radius: 8px;
-    }
-    QDockWidget > QWidget {  /* 内容区域 */
-        background: rgba(50, 50, 50, 0.6);
-        border-radius: 8px;
-    }
-
-        """)
         # 连接场景选择变化信号
         self.scene.selectionChanged.connect(self._on_selection_changed)
 
@@ -411,6 +452,11 @@ class CircuitSimulator(QMainWindow):
         action_set_shortcuts.setStatusTip("自定义快捷键")
         action_set_shortcuts.triggered.connect(self.show_shortcut_settings) # 连接到已有的方法
         settings_menu.addAction(action_set_shortcuts)
+        #ai设置
+        action_edit_ai_config = QAction("AI配置", self)
+        action_edit_ai_config.setStatusTip("打开并编辑AI配置文件")
+        action_edit_ai_config.triggered.connect(self._open_ai_config_dialog)
+        settings_menu.addAction(action_edit_ai_config)
         # 运行菜单
         run_menu = main_menu_bar.addMenu("运行(&R)")
         # 运行spice仿真
@@ -424,6 +470,10 @@ class CircuitSimulator(QMainWindow):
         action_clear_scene.triggered.connect(self._clear_scene) # 连接到已有的方法
         run_menu.addAction(action_clear_scene)
 
+    def _open_ai_config_dialog(self):
+        """打开一个对话框来编辑AI配置。"""
+        dialog = AiConfigDialog(self.ai_config_file_path, self)
+        dialog.exec_() # exec_() 使其成为模态对话框
 
     def show_shortcut_settings(self):
         self.shortcut_manager.show_settings_dialog()
@@ -744,3 +794,9 @@ class CircuitSimulator(QMainWindow):
         """使用命令管理器删除连线"""
         command = RemoveWireCommand(self.scene, wire_item)
         self.command_manager.execute_command(command)
+    
+    # 恢复标准输出流和标准错误输出流，防止主应用退出后的python代码出错
+    def closeEvent(self, event):
+        sys.stdout = sys.__stdout__ 
+        sys.stderr = sys.__stderr__
+        super().closeEvent(event)
