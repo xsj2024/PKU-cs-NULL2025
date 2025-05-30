@@ -732,6 +732,7 @@ class CircuitSimulator(QMainWindow):
         
         if deleted_count > 0:
             self.statusBar().showMessage(f"已删除 {deleted_count} 个项目")
+            self._set_saved(False)
         else:
             self.statusBar().showMessage("没有可删除的项目")
 
@@ -739,8 +740,10 @@ class CircuitSimulator(QMainWindow):
         """使用命令管理器添加连线"""
         command = AddWireCommand(self.scene, wire_item)
         self.command_manager.execute_command(command)
+        self._set_saved(False)
 
     def remove_wire_with_command(self, wire_item):
         """使用命令管理器删除连线"""
         command = RemoveWireCommand(self.scene, wire_item)
         self.command_manager.execute_command(command)
+        self._set_saved(False)
