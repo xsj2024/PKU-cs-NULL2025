@@ -31,7 +31,10 @@ class shortcutManager(QObject):
             "run_spice_simulation": "F6",
             "clear_scene": "Ctrl+E",
             "show_shortcut_settings":"Alt+S",
-            "change_background":"Alt+B"
+            "change_background":"Alt+B",
+            "undo":"Ctrl+Z",
+            "redo":"Ctrl+Y",
+            "delete_selected":"Delete",
         }
         #当前快捷键配置
         self.current_shortcuts = {}
@@ -172,7 +175,10 @@ class shortcutSettingDialog(QDialog):
             "run_spice_simulation": "运行仿真",
             "clear_scene": "清除电路",
             "show_shortcut_settings":"查看快捷键",
-            "change_background":"修改背景图"
+            "change_background":"修改背景图",
+            "undo":"撤回",
+            "redo":"重做",
+            "delete_selected":"删除",
         }
         return display_names.get(action_name, action_name) # 没找到就返回原始输入的action_name
     

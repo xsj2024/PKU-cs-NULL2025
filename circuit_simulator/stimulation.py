@@ -399,30 +399,6 @@ class CircuitSimulator(QMainWindow):
         action_save_as_file.triggered.connect(self.save_file_as) # 连接到已有的 save_file_as 方法
         file_menu.addAction(action_save_as_file)
 
-        # Start 从这里添加了一部分功能 可以更改
-        # 编辑菜单
-        edit_menu = main_menu_bar.addMenu("编辑(&E)")
-        # 撤销
-        action_undo = QAction("撤销", self)
-        action_undo.setShortcut(QKeySequence.Undo)  # Ctrl+Z
-        action_undo.setStatusTip("撤销上一个操作")
-        action_undo.triggered.connect(self.undo_command)
-        edit_menu.addAction(action_undo)
-        # 重做
-        action_redo = QAction("重做", self)
-        action_redo.setShortcut(QKeySequence.Redo)  # Ctrl+Y
-        action_redo.setStatusTip("重做下一个操作")
-        action_redo.triggered.connect(self.redo_command)
-        edit_menu.addAction(action_redo)
-        edit_menu.addSeparator()
-        # 删除选中元件
-        action_delete = QAction("删除选中", self)
-        action_delete.setShortcut(QKeySequence.Delete)  # Delete键
-        action_delete.setStatusTip("删除选中的元件或连线")
-        action_delete.triggered.connect(self.delete_selected)
-        edit_menu.addAction(action_delete)
-        #End
-
         # 设置菜单
         settings_menu = main_menu_bar.addMenu("设置(&E)") # alt + e 打开设置
         # 背景设置
