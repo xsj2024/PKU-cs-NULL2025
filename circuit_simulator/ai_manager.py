@@ -14,6 +14,7 @@ class ai_agent:
         self.temperature = None
         self.system_prompt = None
         self.client = None
+        self.base_url = None
         self.usable = self._load_ai_config()
         
     def __call__(self,user_prompt):
@@ -45,9 +46,10 @@ class ai_agent:
             self.model_name = config.get("model_name", "deepseek-chat")
             self.temperature = config.get("temperature", 0.1)
             self.system_prompt = config.get("system_prompt", "你是一个集成在电路模拟器终端中的有用的人工智能助手。请提供简洁且相关的信息。")
+            self.base_url = config.get("base_url","https://api.deepseek.com")
             if not self.API_KEY:
                 return False
-            self.client = OpenAI(api_key = self.API_KEY, base_url = "https://api.deepseek.com")
+            self.client = OpenAI(api_key = self.API_KEY, base_url = self.base_url)
             return True
         except Exception as e:
             return False
@@ -57,7 +59,8 @@ class AiConfigDialog(QDialog):
         "api_key": "YOUR_DEEPSEEK_API_KEY_HERE",
         "model_name": "deepseek-chat",
         "temperature": 0.1,
-        "system_prompt": "你是一个集成在电路模拟器终端中的有用的人工智能助手。请提供简洁且相关的信息。"
+        "system_prompt": "你是一个集成在电路模拟器终端中的有用的人工智能助手。请提供简洁且相关的信息。",
+        "base_url":"https://api.deepseek.com"
     }
 
     def __init__(self, config_file_path, parent=None):
@@ -77,6 +80,10 @@ class AiConfigDialog(QDialog):
         self.api_key_edit = QLineEdit()
         self.api_key_edit.setPlaceholderText("输入你的 DeepSeek API 密钥")
         form_layout.addRow(QLabel("API 密钥:"), self.api_key_edit)
+
+        self.base_url_edit = QLineEdit()
+        self.base_url_edit.setPlaceholderText('例如："https://api.deepseek.com"')
+        form_layout.addRow(QLabel("API来源:"), self.base_url_edit)
 
         self.model_name_edit = QLineEdit()
         self.model_name_edit.setPlaceholderText("例如：deepseek-chat")
@@ -129,6 +136,7 @@ class AiConfigDialog(QDialog):
 
         self.api_key_edit.setText(current_config.get("api_key", self.DEFAULT_CONFIG["api_key"]))
         self.model_name_edit.setText(current_config.get("model_name", self.DEFAULT_CONFIG["model_name"]))
+        self.base_url_edit.setText(current_config.get("base_url", self.DEFAULT_CONFIG["base_url"]))
         self.temperature_spinbox.setValue(float(current_config.get("temperature", self.DEFAULT_CONFIG["temperature"])))
         self.system_prompt_edit.setPlainText(current_config.get("system_prompt", self.DEFAULT_CONFIG["system_prompt"]))
 
@@ -137,7 +145,8 @@ class AiConfigDialog(QDialog):
             "api_key": self.api_key_edit.text().strip(),
             "model_name": self.model_name_edit.text().strip(),
             "temperature": self.temperature_spinbox.value(),
-            "system_prompt": self.system_prompt_edit.toPlainText().strip()
+            "system_prompt": self.system_prompt_edit.toPlainText().strip(),
+            "base_url":self.base_url_edit.text().strip()
         }
 
         if not config_to_save["api_key"] or config_to_save["api_key"] == "YOUR_DEEPSEEK_API_KEY_HERE":
@@ -163,4 +172,5 @@ class AiConfigDialog(QDialog):
             self.model_name_edit.setText(self.DEFAULT_CONFIG["model_name"])
             self.temperature_spinbox.setValue(self.DEFAULT_CONFIG["temperature"])
             self.system_prompt_edit.setPlainText(self.DEFAULT_CONFIG["system_prompt"])
+            self.base_url_edit.setText(self.DEFAULT_CONFIG["base_url"])
             QMessageBox.information(self, "重置完成", "字段已恢复为默认值。点击“确定”以保存。")

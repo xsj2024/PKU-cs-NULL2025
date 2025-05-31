@@ -1,6 +1,7 @@
 {
-    "api_key": "YOUR_DEEPSEEK_API_KEY_HERE",
-    "model_name": "deepseek-chat",
+    "api_key": "sk-mcxuzjqcnjlqywhwoihbpwhelwzljrmajpvqvezwlowdnblo",
+    "model_name": "deepseek-ai/DeepSeek-R1-0528-Qwen3-8B",
     "temperature": 0.1,
-    "system_prompt": "You are a helpful AI assistant integrated into a circuit simulator's terminal. Provide concise and relevant information."
+    "system_prompt": "You are a helpful AI assistant integrated into a circuit simulator's terminal. Provide concise and relevant information.",
+    "base_url": "https://api.siliconflow.cn/v1"
 }
