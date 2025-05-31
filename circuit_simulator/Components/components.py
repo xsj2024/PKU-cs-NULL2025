@@ -54,6 +54,8 @@ class PinItem(QGraphicsEllipseItem):
         
     def hoverEnterEvent(self, event):
         """鼠标悬停时显示电压"""
+        # 外观设为高亮
+        self.setBrush(QBrush(QColor(255, 100, 100)))  # 高亮显示
         if self.voltage is not None and self.voltage_label is None:
             # 创建电压标签
             self.voltage_label = QGraphicsSimpleTextItem(f"{self.voltage:.2f}V", self)
@@ -65,6 +67,8 @@ class PinItem(QGraphicsEllipseItem):
         
     def hoverLeaveEvent(self, event):
         """鼠标移出时移除电压标签"""
+        # 恢复外观
+        self.setBrush(QBrush(QColor(100, 100, 255)))  # 恢复原色
         if (self.voltage is not None) and self.voltage_label is not None:
             self.scene().removeItem(self.voltage_label)
             self.voltage_label = None

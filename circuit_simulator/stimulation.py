@@ -82,7 +82,7 @@ class CircuitSimulator(QMainWindow):
         self.terminal.setStyleSheet("""
             QPlainTextEdit {
                 background: rgba(45, 45, 45, 0.4);  /* 70%不透明深灰 */
-                color: #A9B7C6; /* 浅灰色文本 */
+                color: #FFFFFF;      /* 白色文字 */
                 font-family: "Consolas", "Courier New", monospace;
                 font-size: 10pt;
                 border: 1px solid #3C3C3C;
