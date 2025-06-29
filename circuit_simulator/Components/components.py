@@ -1,10 +1,11 @@
 from PyQt5.QtWidgets import QGraphicsItem, QGraphicsRectItem, QGraphicsScene
-from PyQt5.QtCore import QRectF, Qt
+from PyQt5.QtCore import QRectF, Qt, QLineF
 from PyQt5.QtGui import QPainterPath, QPen, QColor, QBrush
 from PyQt5.QtWidgets import QGraphicsEllipseItem, QMainWindow, QAction, QToolBar
 from PyQt5.QtGui import QBrush
 from PyQt5.QtWidgets import QGraphicsLineItem, QGraphicsPathItem, QGraphicsSimpleTextItem
 from PyQt5.QtCore import QPointF, pyqtSignal, QObject
+import math
 
 class PinProxy(QObject):
     """代理类，用于处理引脚的信号和槽"""
@@ -12,25 +13,28 @@ class PinProxy(QObject):
 
 class PinItem(QGraphicsEllipseItem):
     def __init__(self, parent_component, pin_name, pos_x, pos_y):
-        super().__init__(-6, -6, 12, 12, parent=parent_component)  # 引脚为小圆点
+        super().__init__(-6, -6, 12, 12, parent=parent_component)
         self.setPos(pos_x, pos_y)
-        self.setBrush(QBrush(QColor(100, 100, 255)))  # 蓝色引脚
+        self.setBrush(QBrush(QColor(100, 100, 255)))
         self.setFlag(QGraphicsItem.ItemIsSelectable, True)
-        self.pin_name = pin_name  # 引脚名称（如 "left", "right"）
-        self.parent_component = parent_component  # 所属元件
-        self.connected_wires = []  # 存储连接的线
-        self.node_name = None  # 节点名称
-        self.voltage = None  # 电压值
-        self.ac_voltage = None  # AC电压函数
-        self.setAcceptHoverEvents(True)  # 接受悬停事件
-        self.voltage_label = None  # 电压标签
-        self.proxy = PinProxy()  # 创建代理类实例
-        self.posChanged = self.proxy.position_changed  # 位置变化信号
+        self.pin_name = pin_name
+        self.parent_component = parent_component
+        self.connected_wires = []
+        self.node_name = None
+        self.voltage = None
+        self.ac_voltage = None
+        self.setAcceptHoverEvents(True)
+        self.voltage_label = None
+        self.proxy = PinProxy()
+        self.posChanged = self.proxy.position_changed
         self.setFlag(QGraphicsItem.ItemIsMovable, False)
         self.setFlag(QGraphicsItem.ItemSendsScenePositionChanges, True)
+        #为吸附功能添加一个专门的高亮状态
+        self.snap_highlighted = False
 
     def itemChange(self, change, value):
-        if change == 27:  # ItemPositionChange
+        #ItemPositionChange的正确枚举值是1，但为了兼容性，保留原来的27或使用枚举
+        if change == QGraphicsItem.ItemScenePositionHasChanged:
             self.proxy.position_changed.emit()
         return super().itemChange(change, value)
 
@@ -51,6 +55,16 @@ class PinItem(QGraphicsEllipseItem):
         else:
             self.ac_voltage = None
 
+    # 【新增】专门用于吸附时的高亮，避免与悬停高亮冲突
+    def set_snap_highlight(self, highlighted):
+        self.snap_highlighted = highlighted
+        if highlighted:
+            self.setBrush(QBrush(QColor(100, 255, 100))) # 使用绿色作为吸附高亮色
+            self.setZValue(3) # 最高层级
+        else:
+            # 恢复时，要变回原来的蓝色
+            self.setBrush(QBrush(QColor(100, 100, 255)))
+            self.setZValue(0)
         
     def hoverEnterEvent(self, event):
         """鼠标悬停时显示电压"""
@@ -66,9 +80,10 @@ class PinItem(QGraphicsEllipseItem):
         super().hoverEnterEvent(event)
         
     def hoverLeaveEvent(self, event):
-        """鼠标移出时移除电压标签"""
-        # 恢复外观
-        self.setBrush(QBrush(QColor(100, 100, 255)))  # 恢复原色
+        # 恢复外观，但要检查是否正处于吸附高亮状态
+        if not self.snap_highlighted:
+            self.setBrush(QBrush(QColor(100, 100, 255)))  # 恢复原色
+        
         if (self.voltage is not None) and self.voltage_label is not None:
             self.scene().removeItem(self.voltage_label)
             self.voltage_label = None
@@ -91,59 +106,92 @@ class CircuitScene(QGraphicsScene):
         super().__init__()
         self.components = []
         self.wires = []
-        self.temp_wire = None  # 临时连线（鼠标拖动时显示）
-        self.main_window = parent  # 保存主窗口引用
+        self.temp_wire = None
+        self.main_window = parent
+        self.temp_start_pin = None # 【修正】将temp_start_pin的初始化移到此处
+
+        # 【新增】引脚吸附相关的属性
+        self.snap_distance = 15  # 像素单位，鼠标离引脚多近时触发吸附
+        self.hovered_snap_pin = None # 当前准备吸附的目标引脚
 
     def start_wire_from_pin(self, pin):
-        # 开始从引脚拖动连线
+        # 【优化】设置鼠标指针为十字形并使用虚线
+        if self.main_window and self.main_window.view:
+            self.main_window.view.setCursor(Qt.CrossCursor)
         self.temp_start_pin = pin
-        self.temp_wire = None  # 清除之前的临时连线
         self.temp_wire = QGraphicsLineItem(
             pin.scenePos().x(), pin.scenePos().y(),
             pin.scenePos().x(), pin.scenePos().y()
         )
-        self.temp_wire.setPen(QPen(Qt.blue, 2))
+        self.temp_wire.setPen(QPen(QColor(50, 150, 250), 2, Qt.DotLine))
         self.addItem(self.temp_wire)
 
     def mouseMoveEvent(self, event):
-        # 更新临时连线终点
-        if hasattr(self, 'temp_wire'):
-            if self.temp_wire:
-                start_pos = self.temp_wire.line().p1()
-                self.temp_wire.setLine(
-                    start_pos.x(), start_pos.y(),
-                    event.scenePos().x(), event.scenePos().y()
-                )
-        super().mouseMoveEvent(event)
+        #重写此方法以实现吸附逻辑
+        if self.temp_wire:
+            current_pos = event.scenePos()
+            target_pin = None
+            
+            # 查找离鼠标最近的有效引脚
+            min_dist = self.snap_distance
+            # 遍历场景中的所有图形项来找到PinItem
+            for item in self.items():
+                if isinstance(item, PinItem):
+                    if item == self.temp_start_pin:
+                        continue # 跳过起始引脚
+                    dist = math.hypot(item.scenePos().x() - current_pos.x(), item.scenePos().y() - current_pos.y())
+                    if dist < min_dist:
+                        min_dist = dist
+                        target_pin = item
+
+            # 处理高亮状态的切换
+            if self.hovered_snap_pin and self.hovered_snap_pin != target_pin:
+                self.hovered_snap_pin.set_snap_highlight(False) # 取消上一个目标的高亮
+            
+            self.hovered_snap_pin = target_pin
+            
+            # 更新临时导线的末端位置
+            line = self.temp_wire.line()
+            if self.hovered_snap_pin:
+                self.hovered_snap_pin.set_snap_highlight(True) # 高亮当前目标
+                line.setP2(self.hovered_snap_pin.scenePos()) # 吸附到目标引脚中心
+            else:
+                line.setP2(current_pos) # 未找到目标，跟随鼠标
+            
+            self.temp_wire.setLine(line)
+        else:
+            super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
-        if hasattr(self, 'temp_start_pin'):
-            # 获取所有在释放位置的项（而不仅是顶层项）
-            items = self.items(event.scenePos())
-            end_pin = None
-            for item in items:
-                if isinstance(item, PinItem) and item != self.temp_start_pin:
-                    end_pin = item
-                    break
-        
-            if end_pin:  # 找到有效引脚
-                print("Connecting wires")
+        #使用吸附的引脚
+        if self.temp_start_pin:
+            # 恢复鼠标指针
+            if self.main_window and self.main_window.view:
+                self.main_window.view.setCursor(Qt.ArrowCursor)
+
+            # 优先使用被吸附的引脚作为终点
+            end_pin = self.hovered_snap_pin
+
+            if end_pin:
                 wire = WireItem(self.temp_start_pin, end_pin)
-                # 使用命令管理器添加连线
+                #使用命令管理器添加连线
                 if self.main_window and hasattr(self.main_window, 'command_manager'):
                     self.main_window.add_wire_with_command(wire)
                 else:
-                    # 备用方案：直接添加
+                    #备用方案：直接添加
                     self.addItem(wire)
                     self.wires.append(wire)
-            else:
-                print("No valid end pin found")
-        
-            # 清理临时项
-            if hasattr(self, 'temp_wire'):
+            
+            # 清理临时项和状态
+            if self.hovered_snap_pin:
+                self.hovered_snap_pin.set_snap_highlight(False)
+                self.hovered_snap_pin = None
+
+            if self.temp_wire:
                 self.removeItem(self.temp_wire)
-                del self.temp_wire
-            del self.temp_start_pin
+            self.temp_wire = None
+            self.temp_start_pin = None
+        
         super().mouseReleaseEvent(event)
 
     def pin_hover(self, pin, is_hovered):
@@ -154,7 +202,8 @@ class CircuitScene(QGraphicsScene):
             else:
                 self.main_window.voltage_label.setText(f"Voltage at {pin.pin_name}: N/A")
         else:
-            self.main_window.voltage_label.setText("")
+            # 【修正】恢复默认文本
+            self.main_window.voltage_label.setText("悬停引脚查看电压")
 
     def _find_end_pin(self, pos):
         for item in self.items(pos):
@@ -174,22 +223,22 @@ class CircuitScene(QGraphicsScene):
         del self.temp_wire
         del self.temp_start_pin
 
-from PyQt5.QtWidgets import QGraphicsPathItem, QGraphicsScene
-from PyQt5.QtGui import QPainterPath
-from PyQt5.QtGui import QPen, QColor
-
 class WireItem(QGraphicsPathItem):
     def __init__(self, start_pin, end_pin):
         super().__init__()
         self.start_pin = start_pin
         self.end_pin = end_pin
         self.setPen(QPen(QColor(0, 0, 0), 2))
-        self.setZValue(1)  # 确保导线在元件上方显示
+        self.setZValue(1)
         
         # 连接信号以动态更新路径
         self.start_pin.proxy.position_changed.connect(self.update_path)
         self.end_pin.proxy.position_changed.connect(self.update_path)
         
+        # 确保导线被添加到引脚的连接列表中
+        start_pin.add_wire(self)
+        end_pin.add_wire(self)
+
         self.update_path()
 
     def update_path(self):
@@ -201,7 +250,7 @@ class WireItem(QGraphicsPathItem):
         
         # 根据引脚相对位置选择路径类型
         if self._should_use_straight_line():
-            path.lineTo(end_pos)  # 直线连接
+            path.lineTo(end_pos)
         else:
             # 贝塞尔曲线（控制点为中间点偏移）
             ctrl1 = QPointF(
