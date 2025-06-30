@@ -4,6 +4,8 @@
 
 主要内容：基于PySpice,PyQt5和ngspice的电路可视化程序
 
+下载链接：https://disk.pku.edu.cn/link/AA98BF0DB58C844006BBBEDFE841076456 (Name: 53-演示.mp4, Expires: 2026-07-30 14:39, Pickup Code: 0000)
+
 # 目前可用的元件类型：
 
 基础元件：电阻R（默认阻值1000欧），电压源V（默认电压5伏），接地元件GND
